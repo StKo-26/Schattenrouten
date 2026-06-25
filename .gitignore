@@ -1,0 +1,22 @@
+# ---------------------------------------------------------------------------
+# Server access / secrets — NEVER publish these.
+# server.md holds plaintext FTP/WordPress/MySQL passwords; deploy.ps1 and the
+# deploy/ folder contain the host, account name and server paths.
+# ---------------------------------------------------------------------------
+server.md
+deploy.ps1
+deploy/
+pass
+*.bak
+*.bak.html
+
+# Duplicate runtime copy + temporary test artifacts
+support(*).js
+_test_*.dc.html
+_test_*.html
+
+# OS / editor / deps
+node_modules/
+.DS_Store
+Thumbs.db
+*.log

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+  <meta name="theme-color" content="#1f6f54" />
+  <title>Schattenroute · Shade-aware walking routes (Karlsruhe)</title>
+
+  <link rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+        crossorigin="" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Control panel -->
+    <aside id="panel" aria-label="Route options">
+      <header class="brand">
+        <span class="logo" aria-hidden="true">🌳</span>
+        <div>
+          <h1>Schattenroute</h1>
+          <p class="tagline">Walk in the shade — Karlsruhe</p>
+        </div>
+        <button id="panel-toggle" class="panel-toggle" aria-label="Collapse options" title="Collapse"
+                aria-expanded="true" aria-controls="panel-body">▾</button>
+      </header>
+
+      <div id="panel-body" class="panel-body">
+        <!-- Start -->
+        <div class="field">
+          <label for="start-input">Start</label>
+          <div class="input-row">
+            <input id="start-input" type="text" autocomplete="off" placeholder="Address or place in Karlsruhe"
+                   role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="start-suggest" />
+            <button class="pin-btn" data-pick="start" title="Pick on map" aria-label="Pick start on map">📍</button>
+          </div>
+          <div id="start-suggest" class="suggest" role="listbox" aria-label="Start suggestions" hidden></div>
+        </div>
+
+        <!-- End -->
+        <div class="field">
+          <label for="end-input">Destination</label>
+          <div class="input-row">
+            <input id="end-input" type="text" autocomplete="off" placeholder="Address or place in Karlsruhe"
+                   role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="end-suggest" />
+            <button class="pin-btn" data-pick="end" title="Pick on map" aria-label="Pick destination on map">📍</button>
+          </div>
+          <div id="end-suggest" class="suggest" role="listbox" aria-label="Destination suggestions" hidden></div>
+        </div>
+
+        <div class="presets">
+          <span class="presets-label">Quick test:</span>
+          <button class="preset" data-preset="hbf-schloss">Hbf → Schloss</button>
+          <button class="preset" data-preset="kit-markt">KIT → Marktplatz</button>
+          <button class="preset" data-preset="europa-zoo">Europaplatz → Zoo</button>
+        </div>
+
+        <!-- Shade vs time -->
+        <div class="field">
+          <label for="weight">
+            Preference: <strong id="weight-label">Balanced</strong>
+          </label>
+          <input id="weight" type="range" min="0" max="100" value="60" step="5" />
+          <div class="range-ends"><span>Fastest</span><span>Most shade</span></div>
+        </div>
+
+        <!-- Time of day -->
+        <div class="field">
+          <label for="datetime">Date &amp; time (sun position)</label>
+          <input id="datetime" type="datetime-local" />
+          <div id="sun-info" class="sun-info">—</div>
+        </div>
+
+        <!-- Pace + stairs -->
+        <div class="field two-col">
+          <div>
+            <label for="pace">Walking pace</label>
+            <select id="pace">
+              <option value="0.8">Slow (3 km/h)</option>
+              <option value="1.1" selected>Comfortable (4 km/h)</option>
+              <option value="1.4">Brisk (5 km/h)</option>
+            </select>
+          </div>
+          <div class="check">
+            <input id="avoid-stairs" type="checkbox" />
+            <label for="avoid-stairs">Avoid stairs<br /><small>(stroller / wheelchair)</small></label>
+          </div>
+        </div>
+
+        <div class="check">
+          <input id="show-shadows" type="checkbox" />
+          <label for="show-shadows">Show shadows on the map</label>
+        </div>
+
+        <button id="find" class="find-btn">Find shady route</button>
+
+        <div id="status" class="status" role="status" aria-live="polite"></div>
+        <div id="results" class="results"></div>
+
+        <footer class="credits">
+          Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>
+          contributors. Address search &amp; geocoding by
+          <a href="https://nominatim.openstreetmap.org/" target="_blank" rel="noopener">Nominatim</a> / OpenStreetMap.
+          Shade is estimated from building/tree data — treat as guidance.
+        </footer>
+      </div>
+    </aside>
+
+    <!-- Map -->
+    <main id="map" aria-label="Map"></main>
+    <div id="pick-hint" class="pick-hint" hidden></div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+          crossorigin=""></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
