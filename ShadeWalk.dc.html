@@ -821,7 +821,7 @@ class Component extends DCLogic {
     this._heroSunDot=s;
   }
   // Screen rect (hero-map pixels) covered by the intro paragraph, so buildings can be
-  // kept out from behind it — they would otherwise hurt the text contrast.
+  // kept out from behind it, they would otherwise hurt the text contrast.
   heroTextRect(){
     const te=this._heroTextEl, mapEl=this._heroMapEl;
     if(!te||!mapEl||!te.getBoundingClientRect) return null;
@@ -868,7 +868,7 @@ class Component extends DCLogic {
     });
   }
   // Dark mode: brighten the very dark CARTO tiles so streets and the basemap (no-shadow)
-  // buildings become clearly visible. Filter applies to the tile layer only — overlay
+  // buildings become clearly visible. Filter applies to the tile layer only, overlay
   // buildings/shadows live in a separate pane and stay as-is.
   applyHeroTileFx(){
     if(!this._heroTiles) return;
@@ -895,7 +895,7 @@ class Component extends DCLogic {
   onToFocus=()=>this.setState({toSug:this.filt(this.state.toText),toOpen:true,fromOpen:false});
   pickFrom(p){this.setState({from:p,fromText:p.name,fromOpen:false});}
   pickTo(p){this.setState({to:p,toText:p.name,toOpen:false});}
-  // "Use my location" — explicit, high-accuracy GPS prompt; sets that end to the live position.
+  // "Use my location", explicit, high-accuracy GPS prompt; sets that end to the live position.
   useMyLocFrom=()=>this.useMyLocation('from');
   useMyLocTo=()=>this.useMyLocation('to');
   useMyLocation(which){
