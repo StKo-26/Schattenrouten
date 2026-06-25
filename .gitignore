@@ -20,3 +20,12 @@ node_modules/
 .DS_Store
 Thumbs.db
 *.log
+
+# Generated OSM building/tree datasets (deployed via SFTP, regenerate with tools/gen-tiles.mjs).
+# Kept out of git: ~250 MB and rebuildable.
+tiles/
+karlsruhe.json
+paris.json
+munich.json
+cologne.json
+stuttgart.json

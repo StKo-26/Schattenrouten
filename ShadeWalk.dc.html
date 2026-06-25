@@ -105,6 +105,10 @@
           </div>
           <button onClick="{{ doSearch }}" style="margin-top:10px;width:100%;border:0;cursor:pointer;padding:15px;border-radius:14px;background:var(--accent,#2c6ecb);color:#fff;font-size:16px;font-weight:600;letter-spacing:-.01em;transition:transform .18s ease,filter .18s ease;" style-hover="transform:translateY(-2px);filter:brightness(1.06);" style-active="transform:translateY(0);">{{ t.findBtn }}</button>
         </div>
+        <div style="max-width:480px;margin:14px auto 0;display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:14px;background:var(--panel2,#ececef);border:0.5px solid var(--line,rgba(0,0,0,.06));font-size:12.5px;line-height:1.5;color:var(--subt,#6e6e73);text-align:left;{{ introCard }}">
+          <span style="font-size:15px;line-height:1.2;flex:none;">⚡</span>
+          <span>{{ citiesLabel }} <strong style="color:var(--text,#1d1d1f);font-weight:700;">{{ citiesList }}</strong><br>{{ citiesNote }}</span>
+        </div>
       </div>
 
     </section>
@@ -117,6 +121,20 @@
           <div style="font-size:13.5px;line-height:1.5;color:var(--subt,#6e6e73);">{{ f.body }}</div>
         </div>
       </sc-for>
+    </section>
+
+    <section style="position:relative;z-index:2;background:var(--bg,#f5f5f7);max-width:1120px;width:100%;margin:0 auto;padding:8px 24px 44px;">
+      <h2 style="font-size:clamp(22px,4vw,30px);font-weight:660;letter-spacing:-.025em;margin:0 0 4px;">{{ mathTitle }}</h2>
+      <p style="font-size:14.5px;color:var(--subt,#6e6e73);margin:0 0 20px;">{{ mathSub }}</p>
+      <div style="display:grid;grid-template-columns:{{ mathGrid }};gap:16px;">
+        <sc-for list="{{ mathBoxes }}" as="m" hint-placeholder-count="5">
+          <div style="background:var(--panel,#fff);border:0.5px solid var(--line,rgba(0,0,0,.07));border-radius:18px;padding:20px 22px;box-shadow:var(--homeShadowSm,11px 11px 0 rgba(120,125,145,0.16));">
+            <div style="font-size:20px;margin-bottom:9px;color:var(--accent,#2c6ecb);">{{ m.icon }}</div>
+            <div style="font-size:15px;font-weight:650;margin-bottom:7px;letter-spacing:-.01em;">{{ m.title }}</div>
+            <div style="font-size:13px;line-height:1.62;color:var(--subt,#6e6e73);">{{ m.body }}</div>
+          </div>
+        </sc-for>
+      </div>
     </section>
 
     <footer style="position:relative;z-index:2;background:var(--bg,#f5f5f7);border-top:0.5px solid var(--line,rgba(0,0,0,.08));max-width:1120px;width:100%;margin:6px auto 0;padding:22px 24px calc(22px + env(safe-area-inset-bottom));display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;justify-content:space-between;">
@@ -138,6 +156,7 @@
         <div style="display:flex;align-items:center;gap:10px;">
           <span style="width:8px;height:8px;border-radius:50%;background:var(--accent,#2c6ecb);flex:none;"></span>
           <input value="{{ fromText }}" onInput="{{ onFromInput }}" style="border:0;background:transparent;outline:none;font-size:14.5px;color:var(--text,#1d1d1f);width:100%;min-width:0;" />
+          <button onClick="{{ useMyLocFrom }}" title="{{ t.myLoc }}" aria-label="Mein Standort als Start" style="border:0;background:var(--accent,#2c6ecb);color:#fff;width:28px;height:28px;border-radius:8px;cursor:pointer;flex:none;font-size:15px;display:flex;align-items:center;justify-content:center;">◎</button>
           <button onClick="{{ swapEnds }}" title="{{ t.swap }}" style="border:0;background:var(--panel2,#ececef);width:28px;height:28px;border-radius:8px;cursor:pointer;color:var(--subt,#6e6e73);flex:none;">⇅</button>
         </div>
         <div style="height:0.5px;background:var(--line,rgba(0,0,0,.08));margin-left:18px;"></div>
@@ -222,6 +241,12 @@
         <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;"><span style="width:12px;height:12px;border-radius:2px;background:#9aa0ad;"></span>{{ t.legBldg }} <span style="color:var(--subt,#9b9ba0);">{{ t.legHint }}</span></div>
         <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;"><span style="width:12px;height:12px;border-radius:2px;background:var(--shade,#4f6ed6);opacity:.3;"></span>{{ t.legCast }}</div>
       </div>
+      <sc-if value="{{ osmLoading }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;left:50%;top:14px;transform:translateX(-50%);z-index:21;display:flex;align-items:center;gap:10px;padding:11px 16px;border-radius:100px;background:var(--accent,#2c6ecb);color:#fff;box-shadow:0 12px 30px -8px rgba(0,0,0,.45);font-size:13.5px;font-weight:700;white-space:nowrap;max-width:92%;">
+          <div style="width:16px;height:16px;border-radius:50%;border:2.5px solid rgba(255,255,255,.35);border-top-color:#fff;animation:sw-spin .7s linear infinite;flex:none;"></div>
+          {{ osmLoadingText }}
+        </div>
+      </sc-if>
       <sc-if value="{{ loading }}" hint-placeholder-val="{{ false }}">
         <div style="position:absolute;inset:0;z-index:20;background:var(--glass,rgba(255,255,255,.7));backdrop-filter:blur(6px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;">
           <div style="width:34px;height:34px;border-radius:50%;border:3px solid var(--line,rgba(0,0,0,.12));border-top-color:var(--accent,#2c6ecb);animation:sw-spin .8s linear infinite;"></div>
@@ -264,7 +289,7 @@ class Component extends DCLogic {
       fromOpen:false, toOpen:false, fromSug:[], toSug:[],
       routes:[], userPicked:null,
       shadeWeight:(props&&props.defaultShade!=null)?props.defaultShade:70,
-      hour:15, speedRaw:45, avoidStairs:false, loading:false, osmWarn:false
+      hour:15, speedRaw:45, avoidStairs:false, loading:false, osmLoading:false, osmWarn:false
     };
     this._enriched=[]; this._sig='';
     this._osm=null; this._field=null; this._fieldKey=''; this._osmCtrl=null;
@@ -328,7 +353,7 @@ class Component extends DCLogic {
     if(!to) to=pts[1];
     return {from:{name:from.name,lat:from.lat,lng:from.lng}, to:{name:to.name,lat:to.lat,lng:to.lng}};
   }
-  componentWillUnmount(){ if(this._onResize) window.removeEventListener('resize',this._onResize); this.cleanupHero(); }
+  componentWillUnmount(){ if(this._onResize) window.removeEventListener('resize',this._onResize); if(this._mapRO){try{this._mapRO.disconnect();}catch(e){} this._mapRO=null;} this.cleanupHero(); }
   componentDidUpdate(){ this.syncMap(); this.syncHeroMap(); }
 
   /* ---------- math helpers ---------- */
@@ -374,12 +399,26 @@ class Component extends DCLogic {
     this._field=null; this._fieldKey='';
     if(areaKm2>45){ this._osm={buildings:[],trees:[],key,center}; return; }
     if(this._osmCtrl) try{this._osmCtrl.abort();}catch(_){}
-    this._osmCtrl=new AbortController();
-    try{
-      const osm=await this.getOsm(bbox,this._osmCtrl.signal);
-      this._osm={buildings:osm.buildings||[],trees:osm.trees||[],key,center};
-      if(!(osm.buildings&&osm.buildings.length)) this.setState({osmWarn:true});
-    }catch(err){ if(err.name!=='AbortError'){ this._osm={buildings:[],trees:[],key,center}; this.setState({osmWarn:true}); } }
+    const ctrl=this._osmCtrl=new AbortController();
+    // Overpass is intermittently rate-limited/slow; retry a few times (the loading
+    // pill stays up meanwhile) before giving up, so buildings reliably appear.
+    for(let attempt=0;attempt<3;attempt++){
+      try{
+        const osm=await this.getOsm(bbox,ctrl.signal);
+        if(osm&&osm.buildings&&osm.buildings.length){
+          this._osm={buildings:osm.buildings,trees:osm.trees||[],key,center};
+          if(this.state.osmWarn) this.setState({osmWarn:false});
+          this._field=null; this._fieldKey=''; return;                // success
+        }
+        this._osm={buildings:[],trees:(osm&&osm.trees)||[],key,center};
+        if(attempt<2 && !ctrl.signal.aborted){ await new Promise(r=>setTimeout(r,1500)); continue; }
+        this.setState({osmWarn:true}); break;                          // gave up after retries
+      }catch(err){
+        if(err.name==='AbortError') return;                            // a newer search took over
+        if(attempt<2){ await new Promise(r=>setTimeout(r,1500)); continue; }
+        this._osm={buildings:[],trees:[],key,center}; this.setState({osmWarn:true}); break;
+      }
+    }
     this._field=null; this._fieldKey='';
   }
   // Shared OSM fetch + sessionStorage cache. Reuses any cached area that fully COVERS the
@@ -405,35 +444,48 @@ class Component extends DCLogic {
       return await this._staticForBbox(bbox);           // timeout or Overpass error → static backup
     }finally{ if(signal) signal.removeEventListener('abort',onAbort); }
   }
-  // Static Karlsruhe dataset (buildings + trees) bundled with the app — backup when
-  // Overpass is unreachable. Loaded once into memory, then filtered per request.
-  async getStaticOsm(){
-    if(this._staticOsm) return this._staticOsm;
-    if(!this._staticOsmP){
-      this._staticOsmP=(async()=>{
+  // Static OSM backup as a tile grid (each ≈3 km, global tile indices). Only the tiles
+  // covering the requested bbox are fetched (lazy) and cached, so coverage can be large
+  // while loads stay quick. Tile size MUST match the generator.
+  async _staticForBbox(bbox){
+    const TLAT=0.027, TLON=0.04;
+    const la0=Math.floor(bbox[0]/TLAT), la1=Math.floor(bbox[2]/TLAT);
+    const lo0=Math.floor(bbox[1]/TLON), lo1=Math.floor(bbox[3]/TLON);
+    if((la1-la0+1)*(lo1-lo0+1)>20) return {buildings:[],trees:[]}; // guard against a pathological bbox
+    const ps=[];
+    for(let la=la0; la<=la1; la++) for(let lo=lo0; lo<=lo1; lo++) ps.push(this._loadTile(la,lo));
+    const loaded=await Promise.all(ps);
+    const inB=(la,lo)=>la>=bbox[0]&&la<=bbox[2]&&lo>=bbox[1]&&lo<=bbox[3];
+    const buildings=[], trees=[];
+    for(const t of loaded){ if(!t) continue;
+      for(const b of t.buildings){ let sl=0,so=0; for(const p of b.ring){ sl+=p.lat; so+=p.lon; } const n=b.ring.length||1; if(inB(sl/n,so/n)) buildings.push(b); }
+      for(const tr of t.trees){ if(inB(tr.lat,tr.lon)) trees.push(tr); }
+    }
+    return {buildings,trees};
+  }
+  async _loadTile(la,lo){
+    this._tileCache=this._tileCache||{}; this._tileCacheP=this._tileCacheP||{};
+    const key=la+'_'+lo;
+    if(this._tileCache[key]!==undefined) return this._tileCache[key];
+    if(!this._tileCacheP[key]){
+      this._tileCacheP[key]=(async()=>{
+        let parsed=null;
         try{
-          const res=await fetch('karlsruhe.json',{cache:'force-cache'});
-          if(!res.ok) throw new Error('http '+res.status);
-          const j=await res.json();
-          const leafOn=[0.05,0.05,0.15,0.5,0.85,1,1,1,0.9,0.6,0.2,0.05];
-          const lf=leafOn[(new Date()).getMonth()];
-          const buildings=[];
-          for(const a of (j.b||[])){ if(a.length<7) continue; const ring=[]; for(let i=1;i+1<a.length;i+=2) ring.push({lat:a[i],lon:a[i+1]}); if(ring.length>=3) buildings.push({ring,h:a[0]||9}); }
-          const trees=(j.t||[]).map(a=>({lat:a[0],lon:a[1],h:a[2],crownR:a[3],density:a[5]?a[4]:a[4]*lf}));
-          this._staticOsm={buildings,trees,bbox:j.bbox||null};
-        }catch(e){ this._staticOsm={buildings:[],trees:[],bbox:null}; }
-        return this._staticOsm;
+          const res=await fetch('tiles/t_'+la+'_'+lo+'.json',{cache:'force-cache'});
+          if(res.ok){
+            const j=await res.json();
+            const leafOn=[0.05,0.05,0.15,0.5,0.85,1,1,1,0.9,0.6,0.2,0.05], lf=leafOn[(new Date()).getMonth()];
+            const buildings=[];
+            for(const a of (j.b||[])){ if(a.length<7) continue; const ring=[]; for(let i=1;i+1<a.length;i+=2) ring.push({lat:a[i],lon:a[i+1]}); if(ring.length>=3) buildings.push({ring,h:a[0]||9}); }
+            const trees=(j.t||[]).map(a=>({lat:a[0],lon:a[1],h:a[2],crownR:a[3],density:a[5]?a[4]:a[4]*lf}));
+            parsed={buildings,trees};
+          }
+        }catch(e){}
+        this._tileCache[key]=parsed; // null → tile missing/failed; cached so we don't refetch this session
+        return this._tileCache[key];
       })();
     }
-    return this._staticOsmP;
-  }
-  async _staticForBbox(bbox){
-    const all=await this.getStaticOsm();
-    if(!all||!all.buildings||!all.buildings.length) return {buildings:[],trees:[]};
-    const inB=(la,lo)=>la>=bbox[0]&&la<=bbox[2]&&lo>=bbox[1]&&lo<=bbox[3];
-    const buildings=all.buildings.filter(b=>{ let sl=0,so=0; for(const p of b.ring){ sl+=p.lat; so+=p.lon; } const n=b.ring.length||1; return inB(sl/n,so/n); });
-    const trees=all.trees.filter(t=>inB(t.lat,t.lon));
-    return {buildings,trees};
+    return this._tileCacheP[key];
   }
   _osmCacheGet(bbox){
     try{ const ss=window.sessionStorage; if(!ss) return null;
@@ -513,9 +565,11 @@ class Component extends DCLogic {
     let raw=await this.fetchAlternatives(from,to);
     if(!raw||raw.length<2){ const s=this.synth(from,to); raw=raw&&raw.length?raw.concat(s).slice(0,3):s; }
     raw=raw.slice(0,3).map((r,i)=>({id:i,coords:r.coords,dist:r.dist,stairsPenalty:this.hash2(i*5+1,i+3)}));
-    this.setState({from,to,fromText:from.name,toText:to.name,routes:raw,userPicked:null});
+    // Show the route immediately, then load buildings/shade in the background with a
+    // visible "loading buildings" pill (covers slow / rate-limited Overpass too).
+    this.setState({from,to,fromText:from.name,toText:to.name,routes:raw,userPicked:null,loading:false,osmLoading:true});
     await this.loadOsm(raw);
-    this.setState({loading:false});
+    this.setState({osmLoading:false});
   }
 
   enrich(){
@@ -560,6 +614,7 @@ class Component extends DCLogic {
   }
   ensureMap(){
     if(this._map||!window.L||!this._mapEl) return;
+    if(this._mapEl.clientHeight<10||this._mapEl.clientWidth<10) return; // wait until laid out (syncMap retries)
     const L=window.L;
     this._map=L.map(this._mapEl,{zoomControl:false,attributionControl:true,preferCanvas:true}).setView(this.CENTER,14);
     L.control.zoom({position:'bottomright'}).addTo(this._map);
@@ -568,12 +623,18 @@ class Component extends DCLogic {
     this._bldgLayer=L.layerGroup().addTo(this._map);
     this._routeLayer=L.layerGroup().addTo(this._map);
     this._tileTheme=this.state.theme;
-    setTimeout(()=>{try{this._map.invalidateSize();this._sig='';this.syncMap();}catch(e){}},90);
+    // Recover from any layout race: re-measure several times, redraw once, and keep
+    // watching the container size so the map can never stay blank/black.
+    const inval=()=>{ try{ this._map.invalidateSize(false); }catch(e){} };
+    [0,60,200,500,1000].forEach(d=>setTimeout(()=>{ if(!this._map) return; inval(); if(d===200){ this._sig=''; this.syncMap(); } },d));
+    try{ if(typeof ResizeObserver!=='undefined'){ this._mapRO=new ResizeObserver(()=>inval()); this._mapRO.observe(this._mapEl); } }catch(e){}
   }
   syncMap(){
     if(this.state.view!=='results') return;
     this.ensureMap();
-    if(!this._map){ setTimeout(()=>{this.ensureMap();if(this._map){this._sig='';this.syncMap();}},150); return; }
+    // Keep retrying until Leaflet has loaded AND the container is laid out (slow CDN / late layout).
+    if(!this._map){ this._mapTries=(this._mapTries||0)+1; if(this._mapTries<200) setTimeout(()=>this.syncMap(),120); return; }
+    this._mapTries=0;
     if(this._tileTheme!==this.state.theme){ this._tiles.setUrl(this.tileUrl()); this._tileTheme=this.state.theme; }
     const sel=this.selectedId();
     const sig=[this.state.routes.map(r=>r.id).join(','),this.state.hour,this.state.speedRaw,this.state.avoidStairs,this.state.shadeWeight,sel,this.state.theme,(this._osm?this._osm.key:'')].join('|');
@@ -607,6 +668,7 @@ class Component extends DCLogic {
     L.circleMarker(A,{radius:8,color:'#fff',weight:3,fillColor:this.vColor('accent'),fillOpacity:1}).addTo(this._routeLayer);
     L.circleMarker(B,{radius:8,color:'#fff',weight:3,fillColor:this.vColor('sun'),fillOpacity:1}).addTo(this._routeLayer);
     try{ this._map.fitBounds(L.latLngBounds(cur.coords).pad(0.2),{maxZoom:16}); }catch(e){}
+    if(typeof window!=='undefined'){ let sz=null; try{ sz=this._map.getSize(); }catch(e){} window.__sw={ osmBuildings:(this._osm&&this._osm.buildings)?this._osm.buildings.length:0, hasField:!!field, bldgDrawn:this._bldgLayer?this._bldgLayer.getLayers().length:0, shadowDrawn:this._shadowLayer?this._shadowLayer.getLayers().length:0, mapW:sz?sz.x:0, mapH:sz?sz.y:0, tiles:(typeof document!=='undefined')?document.querySelectorAll('.leaflet-tile').length:0, tilesLoaded:(typeof document!=='undefined')?document.querySelectorAll('.leaflet-tile-loaded').length:0, osmLoading:!!this.state.osmLoading, osmWarn:!!this.state.osmWarn }; }
   }
 
   /* ---------- hero background map ---------- */
@@ -888,6 +950,24 @@ class Component extends DCLogic {
       feat:[['Shade-aware routing','Every candidate path is scored by how much of it stays in shadow, not just how fast it is.'],['Follows the sun','Estimated building and tree shadows recompute as the sun moves across the sky.'],['Your call','Slide between the fastest route and the shadiest with a single control. Comfort on your terms.']] }
   }; }
 
+  mathBoxes(lang){
+    const de=[
+      {icon:"◈",title:"Woher die Daten kommen",body:"Fußrouten kommen von OSRM (Profil \"foot\", öffentlicher Server der OSM-Community), mit zwei, drei Alternativvarianten pro Strecke. Gebäude und Straßenbäume holen wir live aus OpenStreetMap über die Overpass-API; wenn Overpass gerade ächzt, greift ein vorberechneter Kacheldatensatz für die fünf hinterlegten Städte. Adressen sucht Nominatim, die Karte rendert Leaflet auf CARTO-Tiles. Läuft komplett im Browser, ohne eigenen Server und ohne API-Schlüssel."},
+      {icon:"↻",title:"Wie die Route gefunden wird",body:"OSRM liefert die kürzeste Fußroute plus ein paar Varianten und verbiegt dafür gezielt die Kantengewichte, damit wirklich verschiedene Wege herauskommen. Die kürzeste nehmen wir aber nicht blind: Jede Variante prüfen wir einzeln auf ihren Schattenanteil und sortieren danach neu. Die Gehzeit ist Länge durch Tempo (3/4/5 km/h); Treppen kosten extra, wenn \"Treppen meiden\" aktiv ist."},
+      {icon:"⌂",title:"Wie die Höhen geschätzt werden",body:"Steht in OSM eine height, nehmen wir die. Sonst rechnen wir Stockwerke mal 3,2 m plus einen Meter. Fehlt beides, raten wir nach Gebäudetyp: Kirche 20 m, Wohnblock 15 m, Büro/Handel 12 m, Häuschen oder Schuppen 6 m, sonst 9 m. Bäume bekommen eine Höhe aus dem Tag, einen Kronenradius (halber diameter_crown oder grob 0,35 mal Höhe) und eine Blattdichte je nach Art, die im Winter für Laubbäume zurückgeht."},
+      {icon:"☼",title:"Schatten rechnen und abwägen",body:"Aus Datum, Uhrzeit und Ort liefert der NOAA-Algorithmus Sonnenhöhe und -azimut. Jedes Gebäude wirft einen Schatten: Länge gleich Höhe durch Tangens der Sonnenhöhe (bei 200 m gekappt), die Fläche ist die konvexe Hülle aus Grundriss und dem entgegen der Sonne verschobenen Grundriss; Bäume werfen halbdurchlässige Scheiben. Damit die Punkt-im-Schatten-Abfrage schnell bleibt, liegt ein 40-m-Raster drüber, und den Schattenanteil einer Route holen wir, indem wir sie alle 8 m abtasten. Bewertet wird mit U = w·Schatten + (1-w)·(1-Zeit), wobei w der Schieber ist; empfohlen wird die höchste Punktzahl, schnellste und schattigste Route stehen zum Vergleich daneben."},
+      {icon:"✛",title:"GPS und Bewegungssensoren verschmelzen",body:"Während der Navigation läuft ein Extended-Kalman-Filter mit vier Zuständen: Ost, Nord, Tempo, Blickrichtung. Zwischen den Messungen rechnet er die Position per Koppelnavigation weiter. GPS-Fixes korrigieren die Position (Messrauschen aus der gemeldeten Genauigkeit, nach unten bei 3 m begrenzt), der Kompass korrigiert die Richtung. Der Beschleunigungssensor zählt Schritte (Schwerkraft rausfiltern, Spitzen erkennen, 270 ms Sperrzeit) und schätzt über ein Weinberg-Modell die Schrittlänge fürs Tempo; Stillstand löst ein Zero-Velocity-Update aus. So bleibt der Punkt die echte gefilterte Position, statt auf die Linie zu springen, und kurze GPS-Aussetzer werden überbrückt."}
+    ];
+    const en=[
+      {icon:"◈",title:"Where the data comes from",body:"Walking routes come from OSRM, the public OSM foot router, with a couple of alternatives per trip. Buildings and street trees are pulled live from OpenStreetMap through the Overpass API; for the five bundled cities a precomputed tile set steps in when Overpass is busy. Address search is Nominatim, and the map is Leaflet over CARTO tiles. The whole thing runs in your browser: no backend, no API keys."},
+      {icon:"↻",title:"How the route is found",body:"OSRM returns the shortest foot route plus a few alternatives, nudging edge weights so they actually differ from each other. We don't take the shortest on faith; every candidate gets scored for shade and re-ranked. Walking time is just distance over pace (3/4/5 km/h), and stairs cost extra when \"avoid stairs\" is on."},
+      {icon:"⌂",title:"How heights are estimated",body:"If OSM tags a height, we use it. Failing that, it's levels times 3.2 m plus a metre. With neither, we guess from the type: church 20 m, apartment block 15 m, office/retail 12 m, small house or shed 6 m, everything else 9 m. Trees get a height from the tag, a crown radius (half of diameter_crown, or roughly 0.35 of the height), and a per-species leaf density that thins out for deciduous trees in winter."},
+      {icon:"☼",title:"Computing and weighing shade",body:"Date, time and place go into the NOAA algorithm, which gives the sun's elevation and azimuth. Every building casts a shadow: length is height over tan(elevation), capped at 200 m, and the polygon is the convex hull of the footprint plus a copy shifted away from the sun; trees cast translucent disks. A 40 m grid keeps the point-in-shadow test cheap, and a route's shade fraction comes from sampling it every 8 m. Each candidate scores U = w·shade + (1-w)·(1-time), where w is the slider, and the top score is recommended with the fastest and shadiest parked beside it for comparison."},
+      {icon:"✛",title:"Fusing GPS and motion sensors",body:"While you navigate, a four-state Extended Kalman Filter tracks east, north, speed and heading. Between fixes it dead-reckons the position forward; GPS corrects position (measurement noise from the reported accuracy, floored at 3 m) and the compass corrects heading. The accelerometer counts steps (low-pass out gravity, pick peaks, 270 ms refractory) and a Weinberg step-length model feeds speed, while standing still triggers a zero-velocity update. So the dot stays the real filtered position instead of snapping to the line, and short GPS dropouts coast through."}
+    ];
+    return lang==='en'?en:de;
+  }
+
   renderVals(){
     const s=this.state; const dark=s.theme==='dark'; const R=React.createElement;
     const vars=dark?{bg:'#000000',panel:'#1c1c1e',panel2:'#2c2c2e',text:'#f5f5f7',subt:'#98989d',line:'rgba(255,255,255,0.13)',navline:'rgba(255,255,255,0.22)',accent:'#5e9bf0',shade:'#7c93ff',sun:'#ffb340',mapbg:'#15151a',glass:'rgba(28,28,30,0.82)',shadow:'8px 8px 0 rgba(150,156,178,0.13)',shadowLg:'14px 14px 0 rgba(150,156,178,0.15)',homeShadow:'18px 18px 0 rgba(150,156,178,0.13)',homeShadowSm:'11px 11px 0 rgba(150,156,178,0.11)'}
@@ -965,10 +1045,19 @@ class Component extends DCLogic {
       stairsTrack: s.avoidStairs?vars.accent:vars.panel2, stairsKnob: s.avoidStairs?'21px':'3px', toggleStairs:this.toggleStairs,
       startNav:this.startNav,
       t, toggleLang:this.toggleLang, langFlag:s.lang==='de'?'🇩🇪':'🇬🇧',
+      osmLoading:s.osmLoading,
+      osmLoadingText:s.lang==='en'?'Loading buildings & shadows…':'Gebäude & Schatten werden geladen…',
       osmWarn:s.osmWarn, dismissOsmWarn:this.dismissOsmWarn,
       osmWarnTitle:s.lang==='en'?'Map data is busy':'Kartendaten ausgelastet',
-      osmWarnBody:s.lang==='en'?'OpenStreetMap (Overpass) is experiencing heavy traffic and is rate-limiting requests, so buildings and shadows may not display. Please try again in a moment.':'OpenStreetMap (Overpass) hat gerade sehr viel Verkehr und begrenzt die Anfragen — Gebäude und Schatten werden evtl. nicht angezeigt. Bitte gleich noch einmal versuchen.',
-      osmWarnClose:s.lang==='en'?'Got it':'Verstanden'
+      osmWarnBody:s.lang==='en'?'OpenStreetMap (Overpass) is experiencing heavy traffic and is rate-limiting requests, so buildings and shadows may not display. Please try again in a moment.':'OpenStreetMap (Overpass) hat gerade sehr viel Verkehr und begrenzt die Anfragen. Gebäude und Schatten werden evtl. nicht angezeigt. Bitte gleich noch einmal versuchen.',
+      osmWarnClose:s.lang==='en'?'Got it':'Verstanden',
+      citiesLabel:s.lang==='en'?'Instant shade data:':'Sofort-Schattendaten:',
+      citiesList:s.lang==='en'?'Karlsruhe · Paris · Munich · Cologne · Stuttgart':'Karlsruhe · Paris · München · Köln · Stuttgart',
+      citiesNote:s.lang==='en'?'Other cities load from live map data (slower).':'Andere Städte laden aus Live-Kartendaten (langsamer).',
+      mathTitle:s.lang==='en'?'Under the hood':'Was unter der Haube passiert',
+      mathSub:s.lang==='en'?'The math behind the routes.':'Die Mathematik hinter den Routen.',
+      mathGrid:s.vw<760?'1fr':'repeat(2,1fr)',
+      mathBoxes:this.mathBoxes(s.lang)
     };
   }
 }

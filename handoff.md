@@ -1,4 +1,4 @@
-# SchattenRouten / ShadyRoutes — Handoff & Findings
+# SchattenRouten / ShadyRoutes, Handoff & Findings
 
 _Updated 2026-06-25._
 
@@ -28,7 +28,7 @@ Plain browser globals + a small React-based "DC" runtime (`support.js`, third-pa
 | `ShadeWalk.dc.html` | The planner, deployed as `index.html`. Home + results map (real OSM buildings/shadows/trees), hero background map, DE/EN switch, shade-vs-time weighting, **"use my location" start button**. |
 | `Navigator.dc.html` | Turn-by-turn live navigation. Real GPS sensor fusion, off-route reroute, building/shade overlay, device-orientation cone, no-GPS notice. Receives `from/to/fromName/toName/hour/shade/theme` via URL query. |
 | `recht.html` | Impressum / Datenschutz. |
-| `index.html` (repo root) | A **separate, older** plain-HTML prototype ("Pick on map"). NOT the live product — the live product is `ShadeWalk.dc.html`. |
+| `index.html` (repo root) | A **separate, older** plain-HTML prototype ("Pick on map"). NOT the live product, the live product is `ShadeWalk.dc.html`. |
 
 External services: OSRM (`routing.openstreetmap.de`), Overpass (3 endpoints incl.
 `maps.mail.ru` as a working fallback), Nominatim, CARTO tiles, Leaflet (unpkg).
@@ -38,7 +38,7 @@ old "placeholder downgrade" idea was abandoned; real OSM + NOAA shade is used).
 
 ---
 
-## Bugs found & fixed (Navigator) — diagnosed in a real browser
+## Bugs found & fixed (Navigator), diagnosed in a real browser
 
 Node logic tests passed while the page was still broken on a phone. A
 **Playwright Chromium Android-emulation** harness was built to reproduce and fix:
@@ -75,7 +75,7 @@ Node logic tests passed while the page was still broken on a phone. A
 - **"Use my location" is now a visible crosshair button** in the start field, not
   just a focus-dropdown entry. It does a high-accuracy GPS prompt and fills the start
   with the live position ("Mein Standort" / "My location"). DC note: `{{ }}` bindings
-  do not work in `title`/`aria-label` attributes — use static values there.
+  do not work in `title`/`aria-label` attributes, use static values there.
 
 ---
 
@@ -88,14 +88,14 @@ Navigator + ShadeWalk Component classes; exercises loadRoute / reroute / renderV
 assertions).
 
 Browser (Playwright Chromium, Android `Pixel 5` emulation):
-- `tests/browser/server.mjs` — static server (localhost = secure origin for geo/sensors).
-- `tests/browser/smoke.mjs` — sandbox can render + spoof GPS/IMU.
-- `tests/browser/nav.e2e.mjs` — **full GPS + IMU spoofing** with deterministic OSRM +
+- `tests/browser/server.mjs`, static server (localhost = secure origin for geo/sensors).
+- `tests/browser/smoke.mjs`, sandbox can render + spoof GPS/IMU.
+- `tests/browser/nav.e2e.mjs`, **full GPS + IMU spoofing** with deterministic OSRM +
   Overpass fixtures. 4 scenarios (boot+buildings, live walk w/ moving dot + compass
   cone, off-route instant reroute + loading indicator, no-GPS red notice). 18 checks;
   screenshots to `%TEMP%\nav_e2e_*.png`.
-- `tests/browser/home.smoke.mjs` — ShadeWalk boots + locate button works.
-- `tests/browser/debug_*.mjs` — ad-hoc diagnostics used to find the bugs above.
+- `tests/browser/home.smoke.mjs`, ShadeWalk boots + locate button works.
+- `tests/browser/debug_*.mjs`, ad-hoc diagnostics used to find the bugs above.
 
 The Navigator publishes a `window.__nav` diagnostics object from its paint loop
 (route pts, buildings drawn, gps state, off-route metres, rerouting, dot/pos,
@@ -111,14 +111,32 @@ Setup: `npm i` then `npx playwright install chromium`.
 `ShadeWalk.dc.html` deploys as `index.html`; `Navigator.dc.html`, `engine.js`,
 `nav-core.js`, `nav-fusion.js`, `recht.html`, `support.js` ship alongside. Both
 domains serve over HTTPS with an http→https redirect (`.htaccess` in `deploy/`,
-git-ignored). Mechanism + credentials: `server.md` / `deploy.ps1` — local only,
+git-ignored). Mechanism + credentials: `server.md` / `deploy.ps1`, local only,
 never committed. Password rotation (`server.md` §11) is still pending.
 
 ---
 
+## Offline shade data (static tiles)
+
+When Overpass is throttled or down, building/tree shadows come from a bundled tile
+grid instead of failing. Global ~3 km tiles live at `tiles/t_<latIdx>_<lonIdx>.json`
+(`latIdx = floor(lat / 0.027)`, `lonIdx = floor(lon / 0.04)`). The app lazy-loads only
+the tiles covering the current view or route, so coverage is large while loads stay
+small. Each tile stores compact buildings (`[h, lat, lon, ...]`) and trees
+(`[lat, lon, h, crownR, leafBase, evergreen]`, so seasonal leaf density is recomputed
+on load).
+
+Covered instantly (advertised in the home box): Karlsruhe, Paris, München, Köln,
+Stuttgart (7x7 tiles each, about 9 km radius). Anywhere else falls back to live
+Overpass. Regenerate or extend with `tools/gen-tiles.mjs`: add a city to `CITIES`,
+adjust `RING`, re-run (resumable, skips tiles already on disk), copy the new tiles to
+`tiles/` and deploy. Fetch order in `getOsm`: sessionStorage cache, then live Overpass
+(7 s budget), then static tiles, then a synthetic placeholder plus a dismissible
+"Kartendaten ausgelastet" notice.
+
 ## Coordination / open notes
 
 - A parallel effort is adding **shared building caches** in `engine.js` and
-  **re-adding building/shadow rendering to the planner** — do not clobber those.
+  **re-adding building/shadow rendering to the planner**, do not clobber those.
 - Repo-root `index.html` is a separate older prototype; the live product is
   `ShadeWalk.dc.html`. `ShadeWalk.dc(1).html` is a stray duplicate working copy.
