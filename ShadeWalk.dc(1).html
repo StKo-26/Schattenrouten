@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased;}
+  input{font-family:inherit;}
+  ::placeholder{color:var(--subt,#9b9ba0);}
+  @keyframes sw-spin{to{transform:rotate(360deg);}}
+  @keyframes sw-fade{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+  @keyframes sw-rise{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:none;}}
+  @media (prefers-reduced-motion: reduce){*{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;}}
+  .leaflet-container{background:var(--mapbg,#e8e8ec)!important;font-family:inherit;}
+  .leaflet-control-attribution{font-size:10px;background:rgba(255,255,255,0.55)!important;}
+  .leaflet-tooltip.sw-bh{background:var(--panel,#fff);color:var(--text,#1d1d1f);border:0.5px solid var(--line,rgba(0,0,0,.1));border-radius:7px;box-shadow:0 4px 14px -4px rgba(0,0,0,.3);font-size:11px;font-weight:600;padding:3px 7px;}
+  .leaflet-tooltip.sw-bh:before{display:none;}
+  .sw-scroll::-webkit-scrollbar{width:8px;}
+  .sw-scroll::-webkit-scrollbar-thumb{background:var(--line,rgba(0,0,0,.14));border-radius:8px;}
+  input[type=range]{-webkit-appearance:none;appearance:none;height:4px;border-radius:4px;outline:none;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 5px rgba(0,0,0,.28);cursor:pointer;border:0.5px solid rgba(0,0,0,.06);}
+</style>
+</helmet>
+<div style="--bg:{{ vars.bg }};--panel:{{ vars.panel }};--panel2:{{ vars.panel2 }};--text:{{ vars.text }};--subt:{{ vars.subt }};--line:{{ vars.line }};--accent:{{ vars.accent }};--shade:{{ vars.shade }};--sun:{{ vars.sun }};--mapbg:{{ vars.mapbg }};--glass:{{ vars.glass }};--shadow:{{ vars.shadow }};--shadowLg:{{ vars.shadowLg }};--homeShadow:{{ vars.homeShadow }};--homeShadowSm:{{ vars.homeShadowSm }};min-height:100vh;background:var(--bg,#f5f5f7);color:var(--text,#1d1d1f);transition:background .4s ease,color .4s ease;display:flex;flex-direction:column;">
+
+  <nav style="position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:{{ navPad }};backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);background:var(--glass,rgba(255,255,255,.72));border-bottom:0.5px solid var(--line,rgba(0,0,0,.08));">
+    <div onClick="{{ goHome }}" style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+      <div style="position:relative;width:26px;height:26px;border-radius:50%;background:radial-gradient(circle at 32% 30%,var(--sun,#f5a623),#e0890f);box-shadow:0 0 14px -2px var(--sun,#f5a623);">
+        <div style="position:absolute;right:-3px;bottom:-2px;width:17px;height:17px;border-radius:50%;background:var(--shade,#4f6ed6);box-shadow:0 1px 6px rgba(0,0,0,.25);"></div>
+      </div>
+      <span style="font-size:18px;font-weight:600;letter-spacing:-.02em;">ShadeWalk</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+<button onClick="{{ toggleTheme }}" aria-label="Toggle theme" style="width:38px;height:38px;border-radius:50%;border:0.5px solid var(--line,rgba(0,0,0,.1));background:var(--panel,#fff);color:var(--text,#1d1d1f);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:transform .25s ease,background .2s;" style-hover="transform:rotate(18deg) scale(1.08);background:var(--panel2,#ececef);">{{ themeIcon }}</button>
+    </div>
+  </nav>
+
+  <!-- HOME -->
+  <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+  <main style="flex:1;display:flex;flex-direction:column;position:relative;overflow:hidden;">
+    <div ref="{{ setHeroMapEl }}" style="position:absolute;inset:0;z-index:0;pointer-events:none;"></div>
+    <div style="position:absolute;inset:0;z-index:1;pointer-events:none;background:radial-gradient(146% 92% at 50% 30%, transparent 40%, var(--bg,#f5f5f7) 95%), linear-gradient(180deg, transparent 62%, var(--bg,#f5f5f7) 96%);"></div>
+    <div ref="{{ setHeroSunEl }}" style="position:absolute;inset:0;z-index:1;pointer-events:none;overflow:hidden;"></div>
+    <section style="position:relative;z-index:2;max-width:640px;width:100%;margin:0 auto;padding:{{ heroPad }};display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:78vh;text-align:center;">
+      <div style="width:100%;">
+        <div style="display:inline-flex;align-items:center;gap:7px;padding:6px 13px;border-radius:100px;background:var(--panel2,#ececef);font-size:13px;font-weight:500;color:var(--subt,#6e6e73);margin-bottom:22px;{{ introBadge }}">
+          <span style="width:7px;height:7px;border-radius:50%;background:var(--shade,#4f6ed6);"></span>Karlsruhe · live shade routing
+        </div>
+        <h1 style="font-size:clamp(38px,8.5vw,76px);line-height:1.03;letter-spacing:-.035em;font-weight:680;margin:0 0 18px;text-shadow:0 2px 30px var(--bg,#f5f5f7),0 0 10px var(--bg,#f5f5f7);{{ introH1 }}">Walk in the<br/><span style="display:inline-block;margin-top:.14em;background:linear-gradient(96deg,var(--shade,#4f6ed6),var(--accent,#2c6ecb));color:#fff;-webkit-text-fill-color:#fff;text-shadow:none;border-radius:16px;padding:.02em .3em .1em;box-shadow:var(--homeShadowSm,11px 11px 0 rgba(120,125,145,0.16));">shade.</span></h1>
+        <p style="font-size:19px;line-height:1.5;color:var(--subt,#6e6e73);margin:0 auto 30px;max-width:480px;text-shadow:0 1px 18px var(--bg,#f5f5f7),0 0 8px var(--bg,#f5f5f7);{{ introP }}">ShadeWalk finds the coolest way across town. We map candidate routes, estimate the shadows cast by buildings and trees, then guide you down the shadiest path.</p>
+
+        <div style="background:var(--panel,#fff);border:0.5px solid var(--line,rgba(0,0,0,.08));border-radius:22px;padding:14px;box-shadow:var(--homeShadow,18px 18px 0 rgba(120,125,145,0.22));max-width:480px;margin-left:auto;margin-right:auto;{{ introCard }}">
+          <div style="position:relative;">
+            <div style="display:flex;align-items:center;gap:11px;padding:13px 14px;border-radius:14px;background:var(--panel2,#f3f3f5);">
+              <span style="width:9px;height:9px;border-radius:50%;background:var(--accent,#2c6ecb);flex:none;"></span>
+              <input value="{{ fromText }}" onInput="{{ onFromInput }}" onFocus="{{ onFromFocus }}" placeholder="Start — e.g. Hauptbahnhof" style="border:0;background:transparent;outline:none;font-size:16px;color:var(--text,#1d1d1f);width:100%;text-align:left;" />
+            </div>
+            <sc-if value="{{ fromOpen }}" hint-placeholder-val="{{ false }}">
+              <div style="position:absolute;left:0;right:0;top:54px;z-index:20;background:var(--panel,#fff);border:0.5px solid var(--line,rgba(0,0,0,.1));border-radius:14px;box-shadow:0 18px 40px -16px rgba(0,0,0,.32);overflow:hidden;text-align:left;">
+                <sc-for list="{{ fromSug }}" as="s" hint-placeholder-count="3">
+                  <div onClick="{{ s.pick }}" style="padding:11px 14px;cursor:pointer;font-size:14.5px;display:flex;align-items:center;gap:9px;border-bottom:0.5px solid var(--line,rgba(0,0,0,.05));transition:background .15s;" style-hover="background:var(--panel2,#ececef);">
+                    <span style="color:var(--subt,#9b9ba0);font-size:13px;">◦</span><span>{{ s.name }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
+          <div style="height:8px;"></div>
+          <div style="position:relative;">
+            <div style="display:flex;align-items:center;gap:11px;padding:13px 14px;border-radius:14px;background:var(--panel2,#f3f3f5);">
+              <span style="width:9px;height:9px;border-radius:2px;background:var(--sun,#f5a623);flex:none;"></span>
+              <input value="{{ toText }}" onInput="{{ onToInput }}" onFocus="{{ onToFocus }}" placeholder="Destination — e.g. Schloss" style="border:0;background:transparent;outline:none;font-size:16px;color:var(--text,#1d1d1f);width:100%;text-align:left;" />
+            </div>
+            <sc-if value="{{ toOpen }}" hint-placeholder-val="{{ false }}">
+              <div style="position:absolute;left:0;right:0;top:54px;z-index:20;background:var(--panel,#fff);border:0.5px solid var(--line,rgba(0,0,0,.1));border-radius:14px;box-shadow:0 18px 40px -16px rgba(0,0,0,.32);overflow:hidden;text-align:left;">
+                <sc-for list="{{ toSug }}" as="s" hint-placeholder-count="3">
+                  <div onClick="{{ s.pick }}" style="padding:11px 14px;cursor:pointer;font-size:14.5px;display:flex;align-items:center;gap:9px;border-bottom:0.5px solid var(--line,rgba(0,0,0,.05));transition:background .15s;" style-hover="background:var(--panel2,#ececef);">
+                    <span style="color:var(--subt,#9b9ba0);font-size:13px;">◦</span><span>{{ s.name }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
+          <button onClick="{{ doSearch }}" style="margin-top:10px;width:100%;border:0;cursor:pointer;padding:15px;border-radius:14px;background:var(--accent,#2c6ecb);color:#fff;font-size:16px;font-weight:600;letter-spacing:-.01em;transition:transform .18s ease,filter .18s ease;" style-hover="transform:translateY(-2px);filter:brightness(1.06);" style-active="transform:translateY(0);">Find the shadiest route</button>
+        </div>
+      </div>
+
+    </section>
+
+    <section style="position:relative;z-index:2;background:var(--bg,#f5f5f7);max-width:1120px;width:100%;margin:0 auto;padding:{{ featPad }};display:grid;grid-template-columns:{{ featGrid }};gap:18px;">
+      <sc-for list="{{ features }}" as="f" hint-placeholder-count="3">
+        <div style="background:var(--panel,#fff);border:0.5px solid var(--line,rgba(0,0,0,.07));border-radius:18px;padding:22px;box-shadow:var(--homeShadowSm,11px 11px 0 rgba(120,125,145,0.16));transition:transform .22s ease,box-shadow .22s ease;{{ f.intro }}" style-hover="transform:translateY(-4px);">
+          <div style="font-size:21px;margin-bottom:11px;color:var(--accent,#2c6ecb);">{{ f.icon }}</div>
+          <div style="font-size:15.5px;font-weight:600;margin-bottom:5px;letter-spacing:-.01em;">{{ f.title }}</div>
+          <div style="font-size:13.5px;line-height:1.5;color:var(--subt,#6e6e73);">{{ f.body }}</div>
+        </div>
+      </sc-for>
+    </section>
+
+    <footer style="position:relative;z-index:2;background:var(--bg,#f5f5f7);border-top:0.5px solid var(--line,rgba(0,0,0,.08));max-width:1120px;width:100%;margin:6px auto 0;padding:22px 24px calc(22px + env(safe-area-inset-bottom));display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;justify-content:space-between;">
+      <span style="font-size:13px;color:var(--subt,#6e6e73);">© 2026 SKolutions · Stephan Kohlhaas</span>
+      <div style="display:flex;gap:20px;font-size:13px;">
+        <a href="recht.html#impressum" style="color:var(--subt,#6e6e73);text-decoration:none;transition:color .15s;" style-hover="color:var(--accent,#2c6ecb);">Impressum</a>
+        <a href="recht.html#datenschutz" style="color:var(--subt,#6e6e73);text-decoration:none;transition:color .15s;" style-hover="color:var(--accent,#2c6ecb);">Datenschutz</a>
+      </div>
+    </footer>
+  </main>
+  </sc-if>
+
+  <!-- RESULTS -->
+  <sc-if value="{{ isResults }}" hint-placeholder-val="{{ false }}">
+  <main style="{{ resMain }}">
+    <aside class="sw-scroll" style="{{ asideStyle }}">
+
+      <div style="background:var(--panel,#fff);border:0.5px solid var(--line,rgba(0,0,0,.08));border-radius:16px;padding:13px;display:flex;flex-direction:column;gap:8px;box-shadow:var(--shadow,0 8px 24px -12px rgba(0,0,0,.16));">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="width:8px;height:8px;border-radius:50%;background:var(--accent,#2c6ecb);flex:none;"></span>
+          <input value="{{ fromText }}" onInput="{{ onFromInput }}" style="border:0;background:transparent;outline:none;font-size:14.5px;color:var(--text,#1d1d1f);width:100%;" />
+          <button onClick="{{ swapEnds }}" title="Swap" style="border:0;background:var(--panel2,#ececef);width:28px;height:28px;border-radius:8px;cursor:pointer;color:var(--subt,#6e6e73);flex:none;">⇅</button>
+        </div>
+        <div style="height:0.5px;background:var(--line,rgba(0,0,0,.08));margin-left:18px;"></div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="width:8px;height:8px;border-radius:2px;background:var(--sun,#f5a623);flex:none;"></span>
+          <input value="{{ toText }}" onInput="{{ onToInput }}" style="border:0;background:transparent;outline:none;font-size:14.5px;color:var(--text,#1d1d1f);width:100%;" />
+          <button onClick="{{ doSearch }}" style="border:0;background:var(--accent,#2c6ecb);color:#fff;width:28px;height:28px;border-radius:8px;cursor:pointer;flex:none;font-size:14px;">→</button>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:baseline;justify-content:space-between;padding:0 4px;">
+        <span style="font-size:13px;font-weight:600;color:var(--subt,#6e6e73);text-transform:uppercase;letter-spacing:.06em;">{{ routeCount }} candidate routes</span>
+        <span style="font-size:12px;color:var(--subt,#9b9ba0);">shade re-ranked</span>
+      </div>
+
+      <sc-for list="{{ ranked }}" as="r" hint-placeholder-count="3">
+        <div onClick="{{ r.select }}" style="background:var(--panel,#fff);border:1.5px solid {{ r.border }};border-radius:16px;padding:15px;cursor:pointer;position:relative;{{ r.anim }}box-shadow:{{ r.shadow }};transition:transform .2s ease,box-shadow .25s ease,border-color .2s;" style-hover="transform:translateY(-2px);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;">
+            <div style="display:flex;align-items:center;gap:9px;">
+              <span style="width:12px;height:12px;border-radius:4px;background:{{ r.swatch }};flex:none;"></span>
+              <span style="font-size:15.5px;font-weight:650;letter-spacing:-.01em;">{{ r.label }}</span>
+              <sc-if value="{{ r.tag }}" hint-placeholder-val="{{ false }}">
+                <span style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:3px 7px;border-radius:6px;background:{{ r.tagBg }};color:{{ r.tagColor }};">{{ r.tag }}</span>
+              </sc-if>
+            </div>
+            <span style="font-size:14px;font-weight:600;color:var(--subt,#6e6e73);">{{ r.time }}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px;">
+            <div style="flex:1;height:8px;border-radius:6px;background:var(--panel2,#ececef);overflow:hidden;">
+              <div style="height:100%;width:{{ r.shadePct }}%;border-radius:6px;background:linear-gradient(90deg,var(--shade,#4f6ed6),var(--accent,#2c6ecb));"></div>
+            </div>
+            <span style="font-size:13px;font-weight:650;color:var(--shade,#4f6ed6);min-width:38px;text-align:right;">{{ r.shadeLabel }}</span>
+          </div>
+          <div style="display:flex;gap:13px;font-size:12.5px;color:var(--subt,#6e6e73);">
+            <span>{{ r.dist }}</span><span>·</span><span>{{ r.sunMin }} in sun</span><span>·</span><span>{{ r.stairs }}</span>
+          </div>
+        </div>
+      </sc-for>
+
+      <div style="background:var(--panel,#fff);border:0.5px solid var(--line,rgba(0,0,0,.08));border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:17px;margin-top:4px;box-shadow:var(--shadow,0 8px 24px -12px rgba(0,0,0,.16));">
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;">
+            <span style="font-size:13.5px;font-weight:600;">Priority</span>
+            <span style="font-size:12px;color:var(--subt,#6e6e73);">{{ priorityLabel }}</span>
+          </div>
+          <input type="range" min="0" max="100" value="{{ shadeWeight }}" onInput="{{ onWeight }}" style="width:100%;background:linear-gradient(90deg,var(--sun,#f5a623),var(--shade,#4f6ed6));" />
+          <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--subt,#9b9ba0);margin-top:5px;"><span>Fastest</span><span>Shadiest</span></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;">
+            <span style="font-size:13.5px;font-weight:600;">Time of day</span>
+            <span style="font-size:12px;color:var(--subt,#6e6e73);">{{ hourLabel }} · sun {{ sunLabel }}</span>
+          </div>
+          <input type="range" min="5" max="21" step="1" value="{{ hour }}" onInput="{{ onHour }}" style="width:100%;background:var(--panel2,#ececef);" />
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;">
+            <span style="font-size:13.5px;font-weight:600;">Walking speed</span>
+            <span style="font-size:12px;color:var(--subt,#6e6e73);">{{ speedLabel }}</span>
+          </div>
+          <input type="range" min="30" max="65" step="1" value="{{ speedRaw }}" onInput="{{ onSpeed }}" style="width:100%;background:var(--panel2,#ececef);" />
+        </div>
+        <div onClick="{{ toggleStairs }}" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+          <span style="font-size:13.5px;font-weight:600;">Avoid stairs &amp; steep paths</span>
+          <div style="width:46px;height:28px;border-radius:100px;background:{{ stairsTrack }};position:relative;transition:background .2s;flex:none;">
+            <div style="position:absolute;top:3px;left:{{ stairsKnob }};width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.3);transition:left .2s;"></div>
+          </div>
+        </div>
+      </div>
+
+      <button onClick="{{ startNav }}" style="border:0;cursor:pointer;width:100%;padding:15px;border-radius:14px;background:linear-gradient(135deg,var(--accent,#2c6ecb),var(--shade,#4f6ed6));color:#fff;font-size:15.5px;font-weight:650;letter-spacing:-.01em;display:flex;align-items:center;justify-content:center;gap:9px;box-shadow:var(--shadow,8px 8px 0 rgba(28,30,58,.1));transition:transform .15s ease,filter .15s ease;" style-hover="transform:translateY(-2px);filter:brightness(1.05);" style-active="transform:translateY(0);"><span style="font-size:18px;">‣</span>Start turn-by-turn navigation</button>
+
+      <div style="font-size:11.5px;color:var(--subt,#9b9ba0);line-height:1.5;padding:0 4px;">Building heights, tree cover and the resulting shadows are simulated for illustration — the estimation model is a placeholder.</div>
+    </aside>
+
+    <div style="{{ mapWrap }}">
+      <div ref="{{ setMapEl }}" style="position:absolute;inset:0;"></div>
+      <div style="position:absolute;left:16px;bottom:16px;z-index:10;background:var(--glass,rgba(255,255,255,.82));backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:0.5px solid var(--line,rgba(0,0,0,.08));border-radius:13px;padding:11px 13px;display:flex;flex-direction:column;gap:7px;box-shadow:var(--shadowLg,0 12px 32px -10px rgba(0,0,0,.28));">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--subt,#6e6e73);">Legend</div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;"><span style="width:18px;height:5px;border-radius:3px;background:var(--shade,#4f6ed6);"></span>Shaded sidewalk</div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;"><span style="width:18px;height:5px;border-radius:3px;background:var(--sun,#f5a623);"></span>Sun-exposed</div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;"><span style="width:12px;height:12px;border-radius:2px;background:#9aa0ad;"></span>Building <span style="color:var(--subt,#9b9ba0);">(tap for height)</span></div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;"><span style="width:12px;height:12px;border-radius:2px;background:var(--shade,#4f6ed6);opacity:.3;"></span>Cast shadow</div>
+      </div>
+      <sc-if value="{{ loading }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;inset:0;z-index:20;background:var(--glass,rgba(255,255,255,.7));backdrop-filter:blur(6px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;">
+          <div style="width:34px;height:34px;border-radius:50%;border:3px solid var(--line,rgba(0,0,0,.12));border-top-color:var(--accent,#2c6ecb);animation:sw-spin .8s linear infinite;"></div>
+          <span style="font-size:13.5px;color:var(--subt,#6e6e73);">Estimating shadows…</span>
+        </div>
+      </sc-if>
+    </div>
+  </main>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:860},&quot;defaultShade&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:70,&quot;min&quot;:0,&quot;max&quot;:100,&quot;tsType&quot;:&quot;number&quot;}}">
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    this.CENTER=[49.00937,8.40444];
+    this.POIS=[
+      {name:"Karlsruhe Hauptbahnhof",lat:49.0094,lng:8.4001},
+      {name:"Karlsruher Schloss",lat:49.0135,lng:8.4044},
+      {name:"Marktplatz (Pyramide)",lat:49.0092,lng:8.4036},
+      {name:"Europaplatz",lat:49.0096,lng:8.3964},
+      {name:"KIT Campus Süd",lat:49.0119,lng:8.4170},
+      {name:"Ludwigsplatz",lat:49.0083,lng:8.3990},
+      {name:"Durlacher Tor",lat:49.0096,lng:8.4170},
+      {name:"Kronenplatz",lat:49.0086,lng:8.4090},
+      {name:"ZKM Karlsruhe",lat:49.0001,lng:8.3849},
+      {name:"Stadtgarten / Zoo",lat:48.9966,lng:8.4003},
+      {name:"Günther-Klotz-Anlage",lat:48.9989,lng:8.3793},
+      {name:"Mühlburger Tor",lat:49.0110,lng:8.3895},
+      {name:"Werderplatz",lat:48.9991,lng:8.4030},
+      {name:"Gottesauer Platz",lat:49.0083,lng:8.4205},
+      {name:"Yorckstraße",lat:49.0156,lng:8.3953}
+    ];
+    const f=this.POIS[0], t=this.POIS[1];
+    this.state={
+      theme:'light', view:'home',
+      vw:(typeof window!=='undefined'?window.innerWidth:1280),
+      from:f, to:t, fromText:f.name, toText:t.name,
+      fromOpen:false, toOpen:false, fromSug:[], toSug:[],
+      routes:[], userPicked:null,
+      shadeWeight:(props&&props.defaultShade!=null)?props.defaultShade:70,
+      hour:15, speedRaw:45, avoidStairs:false, loading:false
+    };
+    this._enriched=[]; this._sig='';
+  }
+  componentDidMount(){
+    try{ if(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches) this.setState({theme:'dark'}); }catch(e){}
+    this._onResize=()=>{ this.setState({vw:window.innerWidth}); if(this._map){ setTimeout(()=>{try{this._map.invalidateSize();}catch(e){}},80); } };
+    window.addEventListener('resize',this._onResize);
+  }
+  componentWillUnmount(){ if(this._onResize) window.removeEventListener('resize',this._onResize); this.cleanupHero(); }
+  componentDidUpdate(){ this.syncMap(); this.syncHeroMap(); }
+
+  /* ---------- math helpers ---------- */
+  hav(a,b){const R=6371000,r=Math.PI/180;const dLat=(b[0]-a[0])*r,dLng=(b[1]-a[1])*r;const la1=a[0]*r,la2=b[0]*r;const x=Math.sin(dLat/2)**2+Math.cos(la1)*Math.cos(la2)*Math.sin(dLng/2)**2;return 2*R*Math.asin(Math.sqrt(x));}
+  hash(a,b){let s=Math.sin(a*127.1+b*311.7)*43758.5453;return s-Math.floor(s);}
+  hash2(a,b){let s=Math.sin(a*269.5+b*183.3)*54321.123;return s-Math.floor(s);}
+  sunElev(h){const t=(h-6)/12;return h<=6||h>=18?0:Math.max(0,Math.sin(Math.PI*t));}
+  sunAz(h){const c=Math.max(6,Math.min(18,h));return 90+(c-6)/12*180;}
+  addM(p,n,e){return [p[0]+n/111111, p[1]+e/(111111*Math.cos(p[0]*Math.PI/180))];}
+  hull(pts){
+    pts=pts.slice().sort((a,b)=>a.x-b.x||a.y-b.y);
+    const cross=(o,a,b)=>(a.x-o.x)*(b.y-o.y)-(a.y-o.y)*(b.x-o.x);
+    const lo=[];for(const p of pts){while(lo.length>=2&&cross(lo[lo.length-2],lo[lo.length-1],p)<=0)lo.pop();lo.push(p);}
+    const up=[];for(let i=pts.length-1;i>=0;i--){const p=pts[i];while(up.length>=2&&cross(up[up.length-2],up[up.length-1],p)<=0)up.pop();up.push(p);}
+    lo.pop();up.pop();return lo.concat(up);
+  }
+
+  shadeAt(lat,lng,h,bias){
+    const elev=this.sunElev(h);
+    if(elev<=0.02) return 0.93;
+    const d=this.hav([lat,lng],this.CENTER)/1000;
+    const built=Math.max(0.08,Math.min(1,1-d/3));
+    const low=1-elev;
+    const orient=this.hash(lat*1.7,lng*1.3);
+    const tree=this.hash2(lat,lng);
+    let s=0.16+0.5*built*(0.32+0.68*low)+0.26*tree*(0.4+0.6*low)+0.16*orient+bias;
+    return Math.max(0.03,Math.min(0.98,s));
+  }
+
+  /* ---------- routes ---------- */
+  async fetchAlternatives(a,b){
+    const u=`https://routing.openstreetmap.de/routed-foot/route/v1/foot/${a.lng},${a.lat};${b.lng},${b.lat}?alternatives=3&overview=full&geometries=geojson&steps=false`;
+    const ctrl=new AbortController(); const tm=setTimeout(()=>ctrl.abort(),6000);
+    try{
+      const res=await fetch(u,{signal:ctrl.signal}); clearTimeout(tm);
+      const j=await res.json();
+      if(j.code!=='Ok'||!j.routes||!j.routes.length) return null;
+      return j.routes.map(rt=>({coords:rt.geometry.coordinates.map(c=>[c[1],c[0]]),dist:rt.distance}));
+    }catch(e){ clearTimeout(tm); return null; }
+  }
+  synth(a,b){
+    const out=[]; const offs=[0,0.5,-0.55];
+    for(let k=0;k<3;k++){
+      const n=12; const pts=[[a.lat,a.lng]];
+      const dx=b.lat-a.lat, dy=b.lng-a.lng;
+      const perpx=-dy, perpy=dx;
+      for(let i=1;i<n;i++){
+        const t=i/n; const bend=Math.sin(t*Math.PI)*offs[k];
+        const jx=(this.hash(k*9+i,t)-0.5)*0.0009;
+        const jy=(this.hash2(k*9+i,t)-0.5)*0.0009;
+        const stair=(i%2?1:-1)*0.0003;
+        pts.push([a.lat+dx*t+perpx*bend+jx+stair, a.lng+dy*t+perpy*bend+jy]);
+      }
+      pts.push([b.lat,b.lng]);
+      let dist=0; for(let i=1;i<pts.length;i++) dist+=this.hav(pts[i-1],pts[i]);
+      out.push({coords:pts,dist});
+    }
+    return out;
+  }
+  resolveText(txt){
+    return this.POIS.find(p=>p.name.toLowerCase()===txt.toLowerCase())||this.POIS.find(p=>p.name.toLowerCase().includes(txt.toLowerCase()))||null;
+  }
+  async geocode(txt){
+    try{
+      const u=`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=de&viewbox=8.32,49.06,8.50,48.96&bounded=1&q=${encodeURIComponent(txt)}`;
+      const res=await fetch(u,{headers:{'Accept':'application/json'}}); const j=await res.json();
+      if(j&&j.length) return {name:j[0].display_name.split(',')[0],lat:+j[0].lat,lng:+j[0].lon};
+    }catch(e){} return null;
+  }
+  doSearch=async()=>{
+    this.setState({fromOpen:false,toOpen:false,view:'results',loading:true});
+    let from=this.state.from, to=this.state.to;
+    if(!from||from.name!==this.state.fromText) from=this.resolveText(this.state.fromText)||await this.geocode(this.state.fromText)||from||this.POIS[0];
+    if(!to||to.name!==this.state.toText) to=this.resolveText(this.state.toText)||await this.geocode(this.state.toText)||to||this.POIS[1];
+    let raw=await this.fetchAlternatives(from,to);
+    if(!raw||raw.length<2){ const s=this.synth(from,to); raw=raw&&raw.length?raw.concat(s).slice(0,3):s; }
+    raw=raw.slice(0,3).map((r,i)=>({id:i,coords:r.coords,dist:r.dist,bias:(this.hash(i+1,i*3+2)-0.5)*0.16,stairsPenalty:this.hash2(i*5+1,i+3)}));
+    this.setState({from,to,fromText:from.name,toText:to.name,routes:raw,userPicked:null,loading:false});
+  }
+
+  enrich(){
+    const {routes,hour,speedRaw}=this.state; const speed=speedRaw/10;
+    return routes.map(rt=>{
+      const c=rt.coords; const segs=[]; let tot=0,sh=0;
+      const step=Math.max(1,Math.floor(c.length/55));
+      for(let i=step;i<c.length;i+=step){
+        const a=c[i-step],b=c[i];const len=this.hav(a,b);if(len<1)continue;
+        const mid=[(a[0]+b[0])/2,(a[1]+b[1])/2];
+        const s=this.shadeAt(mid[0],mid[1],hour,rt.bias);
+        segs.push({a,b,mid,len,s}); tot+=len; sh+=s*len;
+      }
+      if(!segs.length){segs.push({a:c[0],b:c[c.length-1],mid:c[0],len:rt.dist||1,s:0.4});tot=rt.dist||1;sh=0.4*tot;}
+      const distKm=(rt.dist||tot)/1000; const shadeFrac=tot?sh/tot:0.4;
+      let timeMin=distKm/speed*60; const hasStairs=rt.stairsPenalty>0.6;
+      if(this.state.avoidStairs&&hasStairs) timeMin+=3.5;
+      return {id:rt.id,coords:c,segs,distKm,shadeFrac,timeMin,hasStairs};
+    });
+  }
+  ranked(){
+    const en=this.enrich(); this._enriched=en; if(!en.length) return [];
+    const times=en.map(e=>e.timeMin); const mn=Math.min(...times),mx=Math.max(...times);
+    const w=this.state.shadeWeight/100;
+    return en.map(e=>{const tN=mx>mn?(e.timeMin-mn)/(mx-mn):0;return {...e,util:w*e.shadeFrac+(1-w)*(1-tN)};}).sort((a,b)=>b.util-a.util);
+  }
+  selectedId(){
+    const r=this.ranked();
+    if(this.state.userPicked!=null&&r.some(x=>x.id===this.state.userPicked)) return this.state.userPicked;
+    return r.length?r[0].id:null;
+  }
+
+  /* ---------- map ---------- */
+  setMapEl=(el)=>{ this._mapEl=el; }
+  tileUrl(){ return this.state.theme==='dark'?'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png':'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'; }
+  vColor(name){
+    const dark=this.state.theme==='dark';
+    const m={shade:dark?'#7c93ff':'#4f6ed6',sun:dark?'#ffb340':'#f5a623',accent:dark?'#5e9bf0':'#2c6ecb',casing:dark?'#16171d':'#ffffff',faint:dark?'#46464c':'#b8b8c2',bldg:dark?'#7c818f':'#9aa2b4',bstroke:dark?'#aeb2be':'#6f778c',shadow:dark?'#6b7186':'#222740',tree:dark?'#5cc473':'#3a9a52',treeStroke:dark?'#9fe0ad':'#2c7a3e',treeShadow:dark?'#5a7a64':'#1c4124'};
+    return m[name];
+  }
+  ensureMap(){
+    if(this._map||!window.L||!this._mapEl) return;
+    const L=window.L;
+    this._map=L.map(this._mapEl,{zoomControl:false,attributionControl:true}).setView(this.CENTER,14);
+    L.control.zoom({position:'bottomright'}).addTo(this._map);
+    this._tiles=L.tileLayer(this.tileUrl(),{subdomains:'abcd',maxZoom:20,detectRetina:true,attribution:'© OpenStreetMap, © CARTO'}).addTo(this._map);
+    this._shadowLayer=L.layerGroup().addTo(this._map);
+    this._bldgLayer=L.layerGroup().addTo(this._map);
+    this._routeLayer=L.layerGroup().addTo(this._map);
+    this._tileTheme=this.state.theme;
+    setTimeout(()=>{try{this._map.invalidateSize();this._sig='';this.syncMap();}catch(e){}},90);
+  }
+  syncMap(){
+    if(this.state.view!=='results') return;
+    this.ensureMap();
+    if(!this._map){ setTimeout(()=>{this.ensureMap();if(this._map){this._sig='';this.syncMap();}},150); return; }
+    if(this._tileTheme!==this.state.theme){ this._tiles.setUrl(this.tileUrl()); this._tileTheme=this.state.theme; }
+    const sel=this.selectedId();
+    const sig=[this.state.routes.map(r=>r.id).join(','),this.state.hour,this.state.speedRaw,this.state.avoidStairs,this.state.shadeWeight,sel,this.state.theme].join('|');
+    if(sig!==this._sig){ this._sig=sig; this.redraw(); }
+  }
+  redraw(){
+    if(!this._map||!window.L) return;
+    const L=window.L; this._routeLayer.clearLayers(); this._shadowLayer.clearLayers(); this._bldgLayer.clearLayers();
+    const en=this._enriched.length?this._enriched:this.enrich(); if(!en.length) return;
+    const sel=this.selectedId();
+    en.forEach(e=>{ if(e.id!==sel) L.polyline(e.coords,{color:this.vColor('faint'),weight:4,opacity:.5,lineJoin:'round'}).addTo(this._routeLayer); });
+    const cur=en.find(e=>e.id===sel)||en[0];
+    // casing
+    L.polyline(cur.coords,{color:this.vColor('casing'),weight:11,opacity:.95,lineJoin:'round',lineCap:'round'}).addTo(this._routeLayer);
+
+    // buildings + cast shadows
+    const elev=this.sunElev(this.state.hour);
+    const sunRad=this.sunAz(this.state.hour)*Math.PI/180;
+    const sunN=Math.cos(sunRad), sunE=Math.sin(sunRad);
+    const c=cur.coords, n=c.length;
+    const count=Math.min(18,Math.max(9,Math.floor(n/3)));
+    for(let k=0;k<count;k++){
+      const idx=Math.round((k+0.5)/count*(n-1));
+      const a=c[Math.max(idx-1,0)], b=c[Math.min(idx+1,n-1)], mid=c[idx];
+      let vn=(b[0]-a[0])*111111, ve=(b[1]-a[1])*111111*Math.cos(mid[0]*Math.PI/180);
+      let L0=Math.hypot(vn,ve)||1; const un=vn/L0, ue=ve/L0; const pn=-ue, pe=un;
+      const sideDot=pn*sunN+pe*sunE; const side=sideDot>=0?1:-1;
+      const off=9+this.hash(mid[0]*4,mid[1]*6)*7;
+      const bc=this.addM(mid, side*off*pn, side*off*pe);
+      const hl=8+this.hash2(mid[0]*5,k)*6, hw=5+this.hash(k,mid[1]*3)*4;
+      const F=[[hl,hw],[hl,-hw],[-hl,-hw],[-hl,hw]].map(([al,pp])=>({n:al*un+pp*pn, e:al*ue+pp*pe}));
+      const h=8+this.hash(mid[0]*3,mid[1]*5)*28;
+      if(elev>0.06){
+        let slen=h/Math.tan(Math.max(0.16,elev*1.35)); slen=Math.max(7,Math.min(52,slen));
+        const Sn=-sunN*slen, Se=-sunE*slen;
+        const all=F.concat(F.map(p=>({n:p.n+Sn,e:p.e+Se}))).map(p=>({x:p.e,y:p.n,n:p.n,e:p.e}));
+        const hl2=this.hull(all).map(p=>this.addM(bc,p.n,p.e));
+        L.polygon(hl2,{stroke:false,fill:true,fillColor:this.vColor('shadow'),fillOpacity:.42}).addTo(this._shadowLayer);
+      }
+      const fp=F.map(p=>this.addM(bc,p.n,p.e));
+      L.polygon(fp,{color:this.vColor('bstroke'),weight:1.6,fillColor:this.vColor('bldg'),fillOpacity:1})
+        .bindTooltip('≈ '+Math.round(h)+' m',{className:'sw-bh',direction:'top',offset:[0,-2]})
+        .addTo(this._bldgLayer);
+    }
+
+    // street trees (green) + their cast shadows
+    const tcount=Math.min(15,Math.max(7,Math.floor(n/4)));
+    for(let k=0;k<tcount;k++){
+      const idx=Math.round((k+0.35)/tcount*(n-1));
+      const a=c[Math.max(idx-1,0)], b=c[Math.min(idx+1,n-1)], mid=c[idx];
+      let vn=(b[0]-a[0])*111111, ve=(b[1]-a[1])*111111*Math.cos(mid[0]*Math.PI/180);
+      let L0=Math.hypot(vn,ve)||1; const un=vn/L0, ue=ve/L0; const pn=-ue, pe=un;
+      const sideDot=pn*sunN+pe*sunE; const side=sideDot>=0?-1:1; // opposite side from buildings
+      const off=7+this.hash(mid[1]*7,k)*5;
+      const tp=this.addM(mid, side*off*pn, side*off*pe);
+      const can=3+this.hash2(k,mid[0]*9)*2.6;
+      const th=5+this.hash(k*3,mid[1]*4)*7;
+      if(elev>0.06){
+        let tl=th/Math.tan(Math.max(0.16,elev*1.35)); tl=Math.max(5,Math.min(40,tl));
+        const sc=this.addM(tp,-sunN*tl,-sunE*tl);
+        L.circle(sc,{radius:can*1.15,stroke:false,fillColor:this.vColor('treeShadow'),fillOpacity:.36}).addTo(this._shadowLayer);
+      }
+      L.circle(tp,{radius:can,color:this.vColor('treeStroke'),weight:1.3,fillColor:this.vColor('tree'),fillOpacity:.95})
+        .bindTooltip('Tree ≈ '+Math.round(th)+' m',{className:'sw-bh',direction:'top',offset:[0,-2]}).addTo(this._bldgLayer);
+    }
+
+    // shaded / sunny sidewalk segments
+    cur.segs.forEach(sg=>{
+      const shaded=sg.s>=0.5;
+      L.polyline([sg.a,sg.b],{color:shaded?this.vColor('shade'):this.vColor('sun'),weight:shaded?7:5,opacity:shaded?.95:.85,lineCap:'round'}).addTo(this._routeLayer);
+    });
+    const A=cur.coords[0],B=cur.coords[cur.coords.length-1];
+    L.circleMarker(A,{radius:8,color:'#fff',weight:3,fillColor:this.vColor('accent'),fillOpacity:1}).addTo(this._routeLayer);
+    L.circleMarker(B,{radius:8,color:'#fff',weight:3,fillColor:this.vColor('sun'),fillOpacity:1}).addTo(this._routeLayer);
+    try{ this._map.fitBounds(L.latLngBounds(cur.coords).pad(0.2),{maxZoom:16}); }catch(e){}
+  }
+
+  /* ---------- hero background map ---------- */
+  setHeroMapEl=(el)=>{
+    if(el){ this._heroMapEl=el; this._tryHero(0); }
+    else { this.cleanupHero(); this._heroMapEl=null; }
+  }
+  setHeroSunEl=(el)=>{ this._heroSunEl=el||null; if(!el) this._heroSunDot=null; }
+  _tryHero(n){
+    if(this.state.view!=='home'||!this._heroMapEl||this._heroMap) return;
+    if(window.L){ this.ensureHeroMap(); }
+    else if(n<60){ setTimeout(()=>this._tryHero(n+1),120); }
+  }
+  cleanupHero(){
+    if(this._heroTimer){ clearInterval(this._heroTimer); this._heroTimer=null; }
+    if(this._heroResize){ window.removeEventListener('resize',this._heroResize); this._heroResize=null; }
+    if(this._heroSunEl){ this._heroSunEl.innerHTML=''; } this._heroSunDot=null;
+    if(this._heroMap){ try{this._heroMap.remove();}catch(e){} this._heroMap=null; }
+  }
+  genHeroBuildings(){
+    const bs=[]; const map=this._heroMap; if(!map||!window.L) return bs;
+    const size=map.getSize(); const W=size.x||window.innerWidth||1200;
+    const visH=Math.min(size.y||800,(window.innerHeight||size.y||800)); const H=visH+120;
+    const step=88; // pixel grid → building count / coverage scales with the screen
+    const cols=Math.ceil(W/step)+2, rows=Math.ceil(H/step)+2;
+    for(let i=-1;i<cols;i++) for(let j=-1;j<rows;j++){
+      if(this.hash(i*3.3+10,j*7.1+4)<0.22) continue; // ~22% gaps for streets / squares
+      const px=i*step+(this.hash(i,j)-0.5)*step*0.72;
+      const py=j*step+(this.hash2(i,j)-0.5)*step*0.72;
+      const ll=map.containerPointToLatLng([px,py]); const center=[ll.lat,ll.lng];
+      const ang=this.hash(i*5,j*9)*Math.PI; const un=Math.cos(ang),ue=Math.sin(ang); const pn=-ue,pe=un;
+      const hl=12+this.hash2(i,j)*17, hw=9+this.hash(j,i)*12;
+      const F=[[hl,hw],[hl,-hw],[-hl,-hw],[-hl,hw]].map(([al,pp])=>({n:al*un+pp*pn,e:al*ue+pp*pe}));
+      const h=10+this.hash(i*2+1,j*2+1)*46;
+      bs.push({center,F,h});
+    }
+    return bs;
+  }
+  ensureHeroMap(){
+    if(this._heroMap||!window.L||!this._heroMapEl) return;
+    const L=window.L;
+    this._heroMap=L.map(this._heroMapEl,{zoomControl:false,attributionControl:false,dragging:false,scrollWheelZoom:false,doubleClickZoom:false,boxZoom:false,keyboard:false,touchZoom:false,tap:false,interactive:false,zoomSnap:0}).setView(this.CENTER,15);
+    this._heroTiles=L.tileLayer(this.tileUrl(),{subdomains:'abcd',maxZoom:20,opacity:this.state.theme==='dark'?0.45:0.62}).addTo(this._heroMap);
+    this._heroShadow=L.layerGroup().addTo(this._heroMap);
+    this._heroBldg=L.layerGroup().addTo(this._heroMap);
+    this._heroTileTheme=this.state.theme;
+    this._heroAng=1.05;
+    this.ensureHeroSun();
+    this._heroBuildings=this.genHeroBuildings();
+    this.drawHeroBuildings();
+    this.drawHeroShadows();
+    this._heroTimer=setInterval(()=>{ this._heroAng+=0.014; this.drawHeroShadows(); }, 70);
+    this._heroResize=()=>{ if(!this._heroMap) return; try{this._heroMap.invalidateSize();}catch(e){} this._heroBuildings=this.genHeroBuildings(); this.drawHeroBuildings(); this.drawHeroShadows(); };
+    window.addEventListener('resize',this._heroResize);
+    setTimeout(()=>{ if(this._heroResize) this._heroResize(); },90);
+  }
+  // Floating sun element. It lives above the map + vignette but below the hero text/card,
+  // so it sweeps the sky and is never trapped behind the search box.
+  ensureHeroSun(){
+    if(!this._heroSunEl||this._heroSunDot) return;
+    this._heroSunEl.innerHTML='';
+    const s=document.createElement('div');
+    s.style.cssText='position:absolute;left:0;top:0;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;background:radial-gradient(circle at 36% 32%,#fff7e0,#ffd982 42%,#f5a623 80%);box-shadow:0 0 40px 13px rgba(245,166,35,.45),0 0 14px 4px rgba(255,216,130,.85);will-change:left,top;pointer-events:none;';
+    this._heroSunEl.appendChild(s);
+    this._heroSunDot=s;
+  }
+  drawHeroBuildings(){
+    if(!this._heroMap||!window.L) return; const L=window.L; this._heroBldg.clearLayers();
+    this._heroBuildings.forEach(b=>{
+      const fp=b.F.map(p=>this.addM(b.center,p.n,p.e));
+      L.polygon(fp,{color:this.vColor('bstroke'),weight:1,fillColor:this.vColor('bldg'),fillOpacity:0.92,interactive:false}).addTo(this._heroBldg);
+    });
+  }
+  drawHeroShadows(){
+    if(!this._heroMap||!window.L) return; const L=window.L; this._heroShadow.clearLayers();
+    this.ensureHeroSun();
+    // Sun follows a wide arch across the whole visible hero, scaled to the screen size.
+    const host=this._heroSunEl||this._heroMapEl;
+    const W=(host&&host.clientWidth)||this._heroMap.getSize().x;
+    const H=Math.min((host&&host.clientHeight)||this._heroMap.getSize().y,(window.innerHeight||(host&&host.clientHeight)||800));
+    const th=this._heroAng;
+    const nx=0.5-0.46*Math.cos(th);            // 0.04 .. 0.96 of the width
+    const x=nx*W;
+    const arch=1-Math.pow(2*nx-1,2);           // 0 at the edges, 1 at mid-sky
+    const y=H*0.30-(H*0.30-H*0.06)*arch;       // dips at the sides, peaks near the top
+    if(this._heroSunDot){ this._heroSunDot.style.left=x+'px'; this._heroSunDot.style.top=y+'px'; this._heroSunDot.style.opacity=(0.5+0.5*arch).toFixed(3); }
+    // One global sun direction (parallel rays) from the sun's screen vector; elevation from arch height.
+    const dx=x-W/2, dy=y-H*0.5, dl=Math.hypot(dx,dy)||1;
+    const sunN=-dy/dl, sunE=dx/dl;
+    const elev=0.2+0.5*arch, slenBase=1/Math.tan(elev);
+    this._heroBuildings.forEach(b=>{
+      const slen=Math.max(8,Math.min(72,b.h*slenBase*0.5));
+      const Sn=-sunN*slen, Se=-sunE*slen;
+      const all=b.F.concat(b.F.map(p=>({n:p.n+Sn,e:p.e+Se}))).map(p=>({x:p.e,y:p.n,n:p.n,e:p.e}));
+      const poly=this.hull(all).map(p=>this.addM(b.center,p.n,p.e));
+      L.polygon(poly,{stroke:false,fill:true,fillColor:this.vColor('shadow'),fillOpacity:this.state.theme==='dark'?0.42:0.34,interactive:false}).addTo(this._heroShadow);
+    });
+  }
+  syncHeroMap(){
+    if(this.state.view!=='home') return;
+    if(!this._heroMap){ this._tryHero(0); return; }
+    if(this._heroTileTheme!==this.state.theme){ this._heroTiles.setUrl(this.tileUrl()); this._heroTiles.setOpacity(this.state.theme==='dark'?0.45:0.62); this._heroTileTheme=this.state.theme; this.drawHeroBuildings(); this.drawHeroShadows(); }
+  }
+
+  /* ---------- handlers ---------- */
+  toggleTheme=()=>this.setState(s=>({theme:s.theme==='dark'?'light':'dark'}));
+  goHome=()=>this.setState({view:'home',fromOpen:false,toOpen:false});
+  filt(v){const q=(v||'').trim().toLowerCase();const base=q?this.POIS.filter(p=>p.name.toLowerCase().includes(q)):this.POIS;return base.slice(0,6);}
+  onFromInput=(e)=>{const v=e.target.value;this.setState({fromText:v,from:null,fromSug:this.filt(v),fromOpen:true});}
+  onToInput=(e)=>{const v=e.target.value;this.setState({toText:v,to:null,toSug:this.filt(v),toOpen:true});}
+  onFromFocus=()=>this.setState({fromSug:this.filt(this.state.fromText),fromOpen:true,toOpen:false});
+  onToFocus=()=>this.setState({toSug:this.filt(this.state.toText),toOpen:true,fromOpen:false});
+  pickFrom(p){this.setState({from:p,fromText:p.name,fromOpen:false});}
+  pickTo(p){this.setState({to:p,toText:p.name,toOpen:false});}
+  swapEnds=()=>{this.setState(s=>({from:s.to,to:s.from,fromText:s.toText,toText:s.fromText}),()=>{if(this.state.routes.length)this.doSearch();});}
+  selectRoute(id){this.setState({userPicked:id});}
+  onWeight=(e)=>this.setState({shadeWeight:+e.target.value,userPicked:null});
+  onHour=(e)=>this.setState({hour:+e.target.value});
+  onSpeed=(e)=>this.setState({speedRaw:+e.target.value});
+  toggleStairs=()=>this.setState(s=>({avoidStairs:!s.avoidStairs}));
+  startNav=()=>{
+    const f=this.state.from, t=this.state.to; if(!f||!t) return;
+    const q=new URLSearchParams({from:f.lat+','+f.lng, to:t.lat+','+t.lng, fromName:f.name||'Start', toName:t.name||'Destination', hour:String(this.state.hour), shade:String(this.state.shadeWeight)});
+    window.location.href='Navigator.dc.html?'+q.toString();
+  };
+  fmtTime(m){const t=Math.round(m);return t>=60?`${Math.floor(t/60)}h ${t%60}m`:`${t} min`;}
+
+  renderVals(){
+    const s=this.state; const dark=s.theme==='dark'; const R=React.createElement;
+    const vars=dark?{bg:'#000000',panel:'#1c1c1e',panel2:'#2c2c2e',text:'#f5f5f7',subt:'#98989d',line:'rgba(255,255,255,0.13)',accent:'#5e9bf0',shade:'#7c93ff',sun:'#ffb340',mapbg:'#15151a',glass:'rgba(28,28,30,0.7)',shadow:'8px 8px 0 rgba(150,156,178,0.13)',shadowLg:'14px 14px 0 rgba(150,156,178,0.15)',homeShadow:'18px 18px 0 rgba(150,156,178,0.13)',homeShadowSm:'11px 11px 0 rgba(150,156,178,0.11)'}
+                  :{bg:'#f5f5f7',panel:'#ffffff',panel2:'#ececef',text:'#1d1d1f',subt:'#6e6e73',line:'rgba(0,0,0,0.08)',accent:'#2c6ecb',shade:'#4f6ed6',sun:'#f5a623',mapbg:'#e6e6ea',glass:'rgba(255,255,255,0.72)',shadow:'8px 8px 0 rgba(28,30,58,0.10)',shadowLg:'14px 14px 0 rgba(28,30,58,0.14)',homeShadow:'18px 18px 0 rgba(120,125,145,0.22)',homeShadowSm:'11px 11px 0 rgba(120,125,145,0.16)'};
+
+    const vw=s.vw||1280; const isMobile=vw<760;
+    const introOn=!this._introDone;
+    const mkIntro=(d)=>introOn?`animation:sw-rise .65s cubic-bezier(.2,.7,.2,1) both;animation-delay:${d}s;`:'';
+
+    const features=[
+      {icon:'◑',title:'Shade-aware routing',body:'Every candidate path is scored by how much of it stays in shadow, not just how fast it is.',intro:mkIntro(0.30)},
+      {icon:'◷',title:'Follows the sun',body:'Estimated building and tree shadows recompute as the sun moves across the Karlsruhe sky.',intro:mkIntro(0.38)},
+      {icon:'✦',title:'Your call',body:'Slide between the fastest route and the shadiest with a single control — comfort on your terms.',intro:mkIntro(0.46)}
+    ];
+
+    const fromSug=(s.fromSug||[]).map((p,i)=>({name:p.name,pick:()=>this.pickFrom(p),key:i}));
+    const toSug=(s.toSug||[]).map((p,i)=>({name:p.name,pick:()=>this.pickTo(p),key:i}));
+
+    // ranked cards
+    const rk=this.ranked(); const sel=this.selectedId();
+    let fastId=null,shadeId=null;
+    if(rk.length){ fastId=rk.reduce((a,b)=>b.timeMin<a.timeMin?b:a,rk[0]).id; shadeId=rk.reduce((a,b)=>b.shadeFrac>a.shadeFrac?b:a,rk[0]).id; }
+    const palette=[vars.shade,'#2fa37e',vars.accent];
+    const ranked=rk.map((e,i)=>{
+      let tag=null,tagBg='',tagColor='';
+      if(e.id===shadeId){tag='Shadiest';tagBg=dark?'rgba(124,147,255,.2)':'#eaeeff';tagColor=vars.shade;}
+      else if(e.id===fastId){tag='Fastest';tagBg=dark?'rgba(255,179,64,.18)':'#fff2dc';tagColor=dark?'#ffb340':'#b9760a';}
+      const sunMin=Math.round(e.timeMin*(1-e.shadeFrac));
+      return {
+        key:e.id, label:'Route '+String.fromCharCode(65+i),
+        anim:'animation:sw-fade .42s cubic-bezier(.2,.7,.2,1) both;animation-delay:'+(i*0.07).toFixed(2)+'s;',
+        select:()=>this.selectRoute(e.id),
+        border:e.id===sel?vars.accent:vars.line,
+        shadow:e.id===sel?(dark?'9px 9px 0 rgba(94,155,240,0.45)':'9px 9px 0 rgba(44,110,203,0.22)'):(dark?'6px 6px 0 rgba(150,156,178,0.13)':'6px 6px 0 rgba(28,30,58,0.09)'),
+        swatch:palette[e.id%3],
+        tag,tagBg,tagColor,
+        time:this.fmtTime(e.timeMin),
+        shadePct:Math.round(e.shadeFrac*100),
+        shadeLabel:Math.round(e.shadeFrac*100)+'%',
+        dist:e.distKm.toFixed(1)+' km',
+        sunMin:sunMin+' min',
+        stairs:e.hasStairs?'has steps':'step-free'
+      };
+    });
+
+    const w=s.shadeWeight;
+    const priorityLabel = w<20?'Speed first':w<45?'Lean fast':w<=60?'Balanced':w<82?'Lean shady':'Shade first';
+    const h=s.hour; const ampm=h===0?'12 AM':h<12?h+' AM':h===12?'12 PM':(h-12)+' PM';
+    const elev=this.sunElev(h); const sunLabel = elev<=0.02?'set':Math.round(elev*82)+'°';
+
+    this._introDone=true;
+    return {
+      vars, isHome:s.view==='home', isResults:s.view==='results',
+      themeIcon: dark?'☀':'☾',
+      navPad: isMobile?'12px 16px':'14px 26px',
+      heroPad: isMobile?'10px 18px 0':'0 26px',
+      featPad: isMobile?'18px 18px 54px':'30px 26px 70px',
+      featGrid: vw<720?'1fr':(vw<1000?'repeat(2,1fr)':'repeat(3,1fr)'),
+      resMain: isMobile?'flex:1;display:flex;flex-direction:column;min-height:0;':'flex:1;display:grid;grid-template-columns:392px 1fr;min-height:0;height:calc(100vh - 67px);',
+      asideStyle: isMobile?'order:2;width:100%;background:var(--bg,#f5f5f7);padding:16px;display:flex;flex-direction:column;gap:13px;':'overflow-y:auto;border-right:0.5px solid var(--line,rgba(0,0,0,.08));background:var(--bg,#f5f5f7);padding:18px;display:flex;flex-direction:column;gap:14px;',
+      mapWrap: isMobile?'order:1;position:relative;width:100%;height:46vh;flex:none;':'position:relative;min-height:0;',
+      introBadge:mkIntro(0.04), introH1:mkIntro(0.10), introP:mkIntro(0.18), introCard:mkIntro(0.26),
+      features,
+      goHome:this.goHome, toggleTheme:this.toggleTheme,
+      fromText:s.fromText, toText:s.toText, fromOpen:s.fromOpen, toOpen:s.toOpen, fromSug, toSug,
+      onFromInput:this.onFromInput, onToInput:this.onToInput, onFromFocus:this.onFromFocus, onToFocus:this.onToFocus,
+      doSearch:()=>this.doSearch(), swapEnds:()=>this.swapEnds(), setMapEl:this.setMapEl, setHeroMapEl:this.setHeroMapEl, setHeroSunEl:this.setHeroSunEl, loading:s.loading,
+      routeCount:rk.length||3, ranked,
+      shadeWeight:s.shadeWeight, priorityLabel, onWeight:this.onWeight,
+      hour:s.hour, hourLabel:ampm, sunLabel, onHour:this.onHour,
+      speedRaw:s.speedRaw, speedLabel:(s.speedRaw/10).toFixed(1)+' km/h', onSpeed:this.onSpeed,
+      stairsTrack: s.avoidStairs?vars.accent:vars.panel2, stairsKnob: s.avoidStairs?'21px':'3px', toggleStairs:this.toggleStairs,
+      startNav:this.startNav
+    };
+  }
+}
+</script>
+</body>
+</html>

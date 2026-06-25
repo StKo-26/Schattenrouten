@@ -1,8 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="de">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SchattenRouten · Schattige Wege durch die Stadt</title>
 <script src="./support.js"></script>
 <script src="./engine.js"></script>
 </head>
@@ -13,7 +14,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;height:100%;}
+  html,body{margin:0;padding:0;height:100%;overflow-x:hidden;}
   body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased;}
   input{font-family:inherit;}
   ::placeholder{color:var(--subt,#9b9ba0);}
@@ -33,36 +34,48 @@
 </helmet>
 <div style="--bg:{{ vars.bg }};--panel:{{ vars.panel }};--panel2:{{ vars.panel2 }};--text:{{ vars.text }};--subt:{{ vars.subt }};--line:{{ vars.line }};--accent:{{ vars.accent }};--shade:{{ vars.shade }};--sun:{{ vars.sun }};--mapbg:{{ vars.mapbg }};--glass:{{ vars.glass }};--shadow:{{ vars.shadow }};--shadowLg:{{ vars.shadowLg }};--homeShadow:{{ vars.homeShadow }};--homeShadowSm:{{ vars.homeShadowSm }};min-height:100vh;background:var(--bg,#f5f5f7);color:var(--text,#1d1d1f);transition:background .4s ease,color .4s ease;display:flex;flex-direction:column;">
 
-  <nav style="position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:{{ navPad }};backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);background:var(--glass,rgba(255,255,255,.72));border-bottom:0.5px solid var(--line,rgba(0,0,0,.08));">
+  <nav style="position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:{{ navPad }};backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);background:var(--glass,rgba(255,255,255,.72));border-bottom:1px solid var(--navline,rgba(0,0,0,.08));">
     <div onClick="{{ goHome }}" style="display:flex;align-items:center;gap:10px;cursor:pointer;">
       <div style="position:relative;width:26px;height:26px;border-radius:50%;background:radial-gradient(circle at 32% 30%,var(--sun,#f5a623),#e0890f);box-shadow:0 0 14px -2px var(--sun,#f5a623);">
         <div style="position:absolute;right:-3px;bottom:-2px;width:17px;height:17px;border-radius:50%;background:var(--shade,#4f6ed6);box-shadow:0 1px 6px rgba(0,0,0,.25);"></div>
       </div>
-      <span style="font-size:18px;font-weight:600;letter-spacing:-.02em;">ShadeWalk</span>
+      <span style="font-size:18px;font-weight:600;letter-spacing:-.02em;">{{ t.brand }}</span>
     </div>
     <div style="display:flex;align-items:center;gap:10px;">
-<button onClick="{{ toggleTheme }}" aria-label="Toggle theme" style="width:38px;height:38px;border-radius:50%;border:0.5px solid var(--line,rgba(0,0,0,.1));background:var(--panel,#fff);color:var(--text,#1d1d1f);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:transform .25s ease,background .2s;" style-hover="transform:rotate(18deg) scale(1.08);background:var(--panel2,#ececef);">{{ themeIcon }}</button>
+<button onClick="{{ toggleLang }}" aria-label="Sprache / language" style="height:38px;padding:0 12px;border-radius:100px;border:1px solid var(--navline,rgba(0,0,0,.1));background:var(--panel,#fff);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:transform .2s ease,background .2s;" style-hover="transform:scale(1.06);background:var(--panel2,#ececef);">{{ langFlag }}</button>
+<button onClick="{{ toggleTheme }}" aria-label="Ansicht hell/dunkel" style="width:38px;height:38px;border-radius:50%;border:1px solid var(--navline,rgba(0,0,0,.1));background:var(--panel,#fff);color:var(--text,#1d1d1f);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:transform .25s ease,background .2s;" style-hover="transform:rotate(18deg) scale(1.08);background:var(--panel2,#ececef);">{{ themeIcon }}</button>
     </div>
   </nav>
+
+  <!-- OSM / Overpass rate-limit notice (centred, click anywhere to dismiss) -->
+  <sc-if value="{{ osmWarn }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ dismissOsmWarn }}" style="position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.34);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);animation:sw-fade .2s ease both;">
+    <div style="max-width:430px;width:100%;background:var(--panel,#fff);border:0.5px solid var(--line,rgba(0,0,0,.08));border-radius:18px;padding:24px 26px;box-shadow:0 24px 60px -18px rgba(0,0,0,.55);text-align:center;">
+      <div style="font-size:30px;margin-bottom:10px;line-height:1;">🗺️</div>
+      <div style="font-size:17px;font-weight:660;letter-spacing:-.01em;margin-bottom:9px;color:var(--text,#1d1d1f);">{{ osmWarnTitle }}</div>
+      <div style="font-size:14px;color:var(--subt,#6e6e73);line-height:1.55;margin-bottom:20px;">{{ osmWarnBody }}</div>
+      <button onClick="{{ dismissOsmWarn }}" style="border:0;cursor:pointer;padding:11px 24px;border-radius:12px;background:var(--accent,#2c6ecb);color:#fff;font-size:14.5px;font-weight:600;">{{ osmWarnClose }}</button>
+    </div>
+  </div>
+  </sc-if>
 
   <!-- HOME -->
   <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
   <main style="flex:1;display:flex;flex-direction:column;position:relative;overflow:hidden;">
     <div ref="{{ setHeroMapEl }}" style="position:absolute;inset:0;z-index:0;pointer-events:none;"></div>
-    <div style="position:absolute;inset:0;z-index:1;pointer-events:none;background:radial-gradient(132% 82% at 50% 30%, transparent 28%, var(--bg,#f5f5f7) 90%), linear-gradient(180deg, transparent 58%, var(--bg,#f5f5f7) 95%);"></div>
+    <div style="position:absolute;inset:0;z-index:1;pointer-events:none;background:radial-gradient(146% 92% at 50% 30%, transparent 40%, var(--bg,#f5f5f7) 95%), linear-gradient(180deg, transparent 62%, var(--bg,#f5f5f7) 96%);"></div>
+    <div ref="{{ setHeroSunEl }}" style="position:absolute;inset:0;z-index:1;pointer-events:none;overflow:hidden;"></div>
     <section style="position:relative;z-index:2;max-width:640px;width:100%;margin:0 auto;padding:{{ heroPad }};display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:78vh;text-align:center;">
       <div style="width:100%;">
-        <div style="display:inline-flex;align-items:center;gap:7px;padding:6px 13px;border-radius:100px;background:var(--panel2,#ececef);font-size:13px;font-weight:500;color:var(--subt,#6e6e73);margin-bottom:22px;{{ introBadge }}">
-          <span style="width:7px;height:7px;border-radius:50%;background:var(--shade,#4f6ed6);"></span>Karlsruhe · live shade routing
-        </div>
-        <h1 style="font-size:clamp(38px,8.5vw,76px);line-height:1.03;letter-spacing:-.035em;font-weight:680;margin:0 0 18px;text-shadow:0 2px 30px var(--bg,#f5f5f7),0 0 10px var(--bg,#f5f5f7);{{ introH1 }}">Walk in the<br/><span style="display:inline-block;margin-top:.14em;background:linear-gradient(96deg,var(--shade,#4f6ed6),var(--accent,#2c6ecb));color:#fff;-webkit-text-fill-color:#fff;text-shadow:none;border-radius:16px;padding:.02em .3em .1em;box-shadow:var(--homeShadowSm,11px 11px 0 rgba(120,125,145,0.16));">shade.</span></h1>
-        <p style="font-size:19px;line-height:1.5;color:var(--subt,#6e6e73);margin:0 auto 30px;max-width:480px;text-shadow:0 1px 18px var(--bg,#f5f5f7),0 0 8px var(--bg,#f5f5f7);{{ introP }}">ShadeWalk finds the coolest way across town. We map candidate routes, estimate the shadows cast by buildings and trees, then guide you down the shadiest path.</p>
+        <h1 style="font-size:clamp(38px,8.5vw,76px);line-height:1.03;letter-spacing:-.035em;font-weight:680;margin:0 0 18px;text-shadow:0 2px 30px var(--bg,#f5f5f7),0 0 10px var(--bg,#f5f5f7);{{ introH1 }}">{{ t.h1a }}<br/><span style="display:inline-block;margin-top:.14em;background:linear-gradient(96deg,var(--shade,#4f6ed6),var(--accent,#2c6ecb));color:#fff;-webkit-text-fill-color:#fff;text-shadow:none;border-radius:16px;padding:.02em .3em .1em;box-shadow:var(--homeShadowSm,11px 11px 0 rgba(120,125,145,0.16));">{{ t.h1b }}</span></h1>
+        <p ref="{{ setHeroTextEl }}" style="font-size:19px;line-height:1.5;color:var(--subt,#6e6e73);margin:0 auto 30px;max-width:480px;text-shadow:0 1px 18px var(--bg,#f5f5f7),0 0 8px var(--bg,#f5f5f7);{{ introP }}">{{ t.intro }}</p>
 
         <div style="background:var(--panel,#fff);border:0.5px solid var(--line,rgba(0,0,0,.08));border-radius:22px;padding:14px;box-shadow:var(--homeShadow,18px 18px 0 rgba(120,125,145,0.22));max-width:480px;margin-left:auto;margin-right:auto;{{ introCard }}">
           <div style="position:relative;">
             <div style="display:flex;align-items:center;gap:11px;padding:13px 14px;border-radius:14px;background:var(--panel2,#f3f3f5);">
               <span style="width:9px;height:9px;border-radius:50%;background:var(--accent,#2c6ecb);flex:none;"></span>
-              <input value="{{ fromText }}" onInput="{{ onFromInput }}" onFocus="{{ onFromFocus }}" placeholder="Start — e.g. Hauptbahnhof" style="border:0;background:transparent;outline:none;font-size:16px;color:var(--text,#1d1d1f);width:100%;text-align:left;" />
+              <input value="{{ fromText }}" onInput="{{ onFromInput }}" onFocus="{{ onFromFocus }}" placeholder="{{ t.phFrom }}" style="border:0;background:transparent;outline:none;font-size:16px;color:var(--text,#1d1d1f);width:100%;min-width:0;text-align:left;" />
+              <button onClick="{{ useMyLocFrom }}" title="Mein Standort" aria-label="Mein Standort als Start" style="border:0;background:var(--accent,#2c6ecb);color:#fff;cursor:pointer;width:30px;height:30px;border-radius:9px;font-size:16px;line-height:1;flex:none;display:flex;align-items:center;justify-content:center;">◎</button>
             </div>
             <sc-if value="{{ fromOpen }}" hint-placeholder-val="{{ false }}">
               <div style="position:absolute;left:0;right:0;top:54px;z-index:20;background:var(--panel,#fff);border:0.5px solid var(--line,rgba(0,0,0,.1));border-radius:14px;box-shadow:0 18px 40px -16px rgba(0,0,0,.32);overflow:hidden;text-align:left;">
@@ -78,7 +91,7 @@
           <div style="position:relative;">
             <div style="display:flex;align-items:center;gap:11px;padding:13px 14px;border-radius:14px;background:var(--panel2,#f3f3f5);">
               <span style="width:9px;height:9px;border-radius:2px;background:var(--sun,#f5a623);flex:none;"></span>
-              <input value="{{ toText }}" onInput="{{ onToInput }}" onFocus="{{ onToFocus }}" placeholder="Destination — e.g. Schloss" style="border:0;background:transparent;outline:none;font-size:16px;color:var(--text,#1d1d1f);width:100%;text-align:left;" />
+              <input value="{{ toText }}" onInput="{{ onToInput }}" onFocus="{{ onToFocus }}" placeholder="{{ t.phTo }}" style="border:0;background:transparent;outline:none;font-size:16px;color:var(--text,#1d1d1f);width:100%;min-width:0;text-align:left;" />
             </div>
             <sc-if value="{{ toOpen }}" hint-placeholder-val="{{ false }}">
               <div style="position:absolute;left:0;right:0;top:54px;z-index:20;background:var(--panel,#fff);border:0.5px solid var(--line,rgba(0,0,0,.1));border-radius:14px;box-shadow:0 18px 40px -16px rgba(0,0,0,.32);overflow:hidden;text-align:left;">
@@ -90,7 +103,7 @@
               </div>
             </sc-if>
           </div>
-          <button onClick="{{ doSearch }}" style="margin-top:10px;width:100%;border:0;cursor:pointer;padding:15px;border-radius:14px;background:var(--accent,#2c6ecb);color:#fff;font-size:16px;font-weight:600;letter-spacing:-.01em;transition:transform .18s ease,filter .18s ease;" style-hover="transform:translateY(-2px);filter:brightness(1.06);" style-active="transform:translateY(0);">Find the shadiest route</button>
+          <button onClick="{{ doSearch }}" style="margin-top:10px;width:100%;border:0;cursor:pointer;padding:15px;border-radius:14px;background:var(--accent,#2c6ecb);color:#fff;font-size:16px;font-weight:600;letter-spacing:-.01em;transition:transform .18s ease,filter .18s ease;" style-hover="transform:translateY(-2px);filter:brightness(1.06);" style-active="transform:translateY(0);">{{ t.findBtn }}</button>
         </div>
       </div>
 
@@ -105,6 +118,14 @@
         </div>
       </sc-for>
     </section>
+
+    <footer style="position:relative;z-index:2;background:var(--bg,#f5f5f7);border-top:0.5px solid var(--line,rgba(0,0,0,.08));max-width:1120px;width:100%;margin:6px auto 0;padding:22px 24px calc(22px + env(safe-area-inset-bottom));display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;justify-content:space-between;">
+      <span style="font-size:13px;color:var(--subt,#6e6e73);">© 2026 SKolutions · Stephan Kohlhaas</span>
+      <div style="display:flex;gap:20px;font-size:13px;">
+        <a href="recht.html#impressum" style="color:var(--subt,#6e6e73);text-decoration:none;transition:color .15s;" style-hover="color:var(--accent,#2c6ecb);">Impressum</a>
+        <a href="recht.html#datenschutz" style="color:var(--subt,#6e6e73);text-decoration:none;transition:color .15s;" style-hover="color:var(--accent,#2c6ecb);">Datenschutz</a>
+      </div>
+    </footer>
   </main>
   </sc-if>
 
@@ -116,20 +137,20 @@
       <div style="background:var(--panel,#fff);border:0.5px solid var(--line,rgba(0,0,0,.08));border-radius:16px;padding:13px;display:flex;flex-direction:column;gap:8px;box-shadow:var(--shadow,0 8px 24px -12px rgba(0,0,0,.16));">
         <div style="display:flex;align-items:center;gap:10px;">
           <span style="width:8px;height:8px;border-radius:50%;background:var(--accent,#2c6ecb);flex:none;"></span>
-          <input value="{{ fromText }}" onInput="{{ onFromInput }}" style="border:0;background:transparent;outline:none;font-size:14.5px;color:var(--text,#1d1d1f);width:100%;" />
-          <button onClick="{{ swapEnds }}" title="Swap" style="border:0;background:var(--panel2,#ececef);width:28px;height:28px;border-radius:8px;cursor:pointer;color:var(--subt,#6e6e73);flex:none;">⇅</button>
+          <input value="{{ fromText }}" onInput="{{ onFromInput }}" style="border:0;background:transparent;outline:none;font-size:14.5px;color:var(--text,#1d1d1f);width:100%;min-width:0;" />
+          <button onClick="{{ swapEnds }}" title="{{ t.swap }}" style="border:0;background:var(--panel2,#ececef);width:28px;height:28px;border-radius:8px;cursor:pointer;color:var(--subt,#6e6e73);flex:none;">⇅</button>
         </div>
         <div style="height:0.5px;background:var(--line,rgba(0,0,0,.08));margin-left:18px;"></div>
         <div style="display:flex;align-items:center;gap:10px;">
           <span style="width:8px;height:8px;border-radius:2px;background:var(--sun,#f5a623);flex:none;"></span>
-          <input value="{{ toText }}" onInput="{{ onToInput }}" style="border:0;background:transparent;outline:none;font-size:14.5px;color:var(--text,#1d1d1f);width:100%;" />
+          <input value="{{ toText }}" onInput="{{ onToInput }}" style="border:0;background:transparent;outline:none;font-size:14.5px;color:var(--text,#1d1d1f);width:100%;min-width:0;" />
           <button onClick="{{ doSearch }}" style="border:0;background:var(--accent,#2c6ecb);color:#fff;width:28px;height:28px;border-radius:8px;cursor:pointer;flex:none;font-size:14px;">→</button>
         </div>
       </div>
 
       <div style="display:flex;align-items:baseline;justify-content:space-between;padding:0 4px;">
-        <span style="font-size:13px;font-weight:600;color:var(--subt,#6e6e73);text-transform:uppercase;letter-spacing:.06em;">{{ routeCount }} candidate routes</span>
-        <span style="font-size:12px;color:var(--subt,#9b9ba0);">shade re-ranked</span>
+        <span style="font-size:13px;font-weight:600;color:var(--subt,#6e6e73);text-transform:uppercase;letter-spacing:.06em;">{{ routeCount }} {{ t.candidates }}</span>
+        <span style="font-size:12px;color:var(--subt,#9b9ba0);">{{ t.reranked }}</span>
       </div>
 
       <sc-for list="{{ ranked }}" as="r" hint-placeholder-count="3">
@@ -151,7 +172,7 @@
             <span style="font-size:13px;font-weight:650;color:var(--shade,#4f6ed6);min-width:38px;text-align:right;">{{ r.shadeLabel }}</span>
           </div>
           <div style="display:flex;gap:13px;font-size:12.5px;color:var(--subt,#6e6e73);">
-            <span>{{ r.dist }}</span><span>·</span><span>{{ r.sunMin }} in sun</span><span>·</span><span>{{ r.stairs }}</span>
+            <span>{{ r.dist }}</span><span>·</span><span>{{ r.sunMin }} {{ t.inSun }}</span><span>·</span><span>{{ r.stairs }}</span>
           </div>
         </div>
       </sc-for>
@@ -159,50 +180,52 @@
       <div style="background:var(--panel,#fff);border:0.5px solid var(--line,rgba(0,0,0,.08));border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:17px;margin-top:4px;box-shadow:var(--shadow,0 8px 24px -12px rgba(0,0,0,.16));">
         <div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;">
-            <span style="font-size:13.5px;font-weight:600;">Priority</span>
+            <span style="font-size:13.5px;font-weight:600;">{{ t.priority }}</span>
             <span style="font-size:12px;color:var(--subt,#6e6e73);">{{ priorityLabel }}</span>
           </div>
           <input type="range" min="0" max="100" value="{{ shadeWeight }}" onInput="{{ onWeight }}" style="width:100%;background:linear-gradient(90deg,var(--sun,#f5a623),var(--shade,#4f6ed6));" />
-          <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--subt,#9b9ba0);margin-top:5px;"><span>Fastest</span><span>Shadiest</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--subt,#9b9ba0);margin-top:5px;"><span>{{ t.fastest }}</span><span>{{ t.shadiest }}</span></div>
         </div>
         <div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;">
-            <span style="font-size:13.5px;font-weight:600;">Time of day</span>
-            <span style="font-size:12px;color:var(--subt,#6e6e73);">{{ hourLabel }} · sun {{ sunLabel }}</span>
+            <span style="font-size:13.5px;font-weight:600;">{{ t.timeOfDay }}</span>
+            <span style="font-size:12px;color:var(--subt,#6e6e73);">{{ hourLabel }} · {{ t.sunWord }} {{ sunLabel }}</span>
           </div>
           <input type="range" min="5" max="21" step="1" value="{{ hour }}" onInput="{{ onHour }}" style="width:100%;background:var(--panel2,#ececef);" />
         </div>
         <div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;">
-            <span style="font-size:13.5px;font-weight:600;">Walking speed</span>
+            <span style="font-size:13.5px;font-weight:600;">{{ t.speed }}</span>
             <span style="font-size:12px;color:var(--subt,#6e6e73);">{{ speedLabel }}</span>
           </div>
           <input type="range" min="30" max="65" step="1" value="{{ speedRaw }}" onInput="{{ onSpeed }}" style="width:100%;background:var(--panel2,#ececef);" />
         </div>
         <div onClick="{{ toggleStairs }}" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
-          <span style="font-size:13.5px;font-weight:600;">Avoid stairs &amp; steep paths</span>
+          <span style="font-size:13.5px;font-weight:600;">{{ t.avoidStairs }}</span>
           <div style="width:46px;height:28px;border-radius:100px;background:{{ stairsTrack }};position:relative;transition:background .2s;flex:none;">
             <div style="position:absolute;top:3px;left:{{ stairsKnob }};width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.3);transition:left .2s;"></div>
           </div>
         </div>
       </div>
 
-      <div style="font-size:11.5px;color:var(--subt,#9b9ba0);line-height:1.5;padding:0 4px;">Building footprints &amp; heights and street trees come from OpenStreetMap; shadows are estimated from the real sun position for the chosen time — treat as guidance.</div>
+      <button onClick="{{ startNav }}" style="border:0;cursor:pointer;width:100%;padding:15px;border-radius:14px;background:linear-gradient(135deg,var(--accent,#2c6ecb),var(--shade,#4f6ed6));color:#fff;font-size:15.5px;font-weight:650;letter-spacing:-.01em;display:flex;align-items:center;justify-content:center;gap:9px;box-shadow:var(--shadow,8px 8px 0 rgba(28,30,58,.1));transition:transform .15s ease,filter .15s ease;" style-hover="transform:translateY(-2px);filter:brightness(1.05);" style-active="transform:translateY(0);"><span style="font-size:18px;">‣</span>{{ t.startNav }}</button>
+
+      <div style="font-size:11.5px;color:var(--subt,#9b9ba0);line-height:1.5;padding:0 4px;">{{ t.disclaimer }}</div>
     </aside>
 
     <div style="{{ mapWrap }}">
       <div ref="{{ setMapEl }}" style="position:absolute;inset:0;"></div>
       <div style="position:absolute;left:16px;bottom:16px;z-index:10;background:var(--glass,rgba(255,255,255,.82));backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:0.5px solid var(--line,rgba(0,0,0,.08));border-radius:13px;padding:11px 13px;display:flex;flex-direction:column;gap:7px;box-shadow:var(--shadowLg,0 12px 32px -10px rgba(0,0,0,.28));">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--subt,#6e6e73);">Legend</div>
-        <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;"><span style="width:18px;height:5px;border-radius:3px;background:var(--shade,#4f6ed6);"></span>Shaded sidewalk</div>
-        <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;"><span style="width:18px;height:5px;border-radius:3px;background:var(--sun,#f5a623);"></span>Sun-exposed</div>
-        <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;"><span style="width:12px;height:12px;border-radius:2px;background:#9aa0ad;"></span>Building <span style="color:var(--subt,#9b9ba0);">(tap for height)</span></div>
-        <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;"><span style="width:12px;height:12px;border-radius:2px;background:var(--shade,#4f6ed6);opacity:.3;"></span>Cast shadow</div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--subt,#6e6e73);">{{ t.legend }}</div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;"><span style="width:18px;height:5px;border-radius:3px;background:var(--shade,#4f6ed6);"></span>{{ t.legShade }}</div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;"><span style="width:18px;height:5px;border-radius:3px;background:var(--sun,#f5a623);"></span>{{ t.legSun }}</div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;"><span style="width:12px;height:12px;border-radius:2px;background:#9aa0ad;"></span>{{ t.legBldg }} <span style="color:var(--subt,#9b9ba0);">{{ t.legHint }}</span></div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;"><span style="width:12px;height:12px;border-radius:2px;background:var(--shade,#4f6ed6);opacity:.3;"></span>{{ t.legCast }}</div>
       </div>
       <sc-if value="{{ loading }}" hint-placeholder-val="{{ false }}">
         <div style="position:absolute;inset:0;z-index:20;background:var(--glass,rgba(255,255,255,.7));backdrop-filter:blur(6px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;">
           <div style="width:34px;height:34px;border-radius:50%;border:3px solid var(--line,rgba(0,0,0,.12));border-top-color:var(--accent,#2c6ecb);animation:sw-spin .8s linear infinite;"></div>
-          <span style="font-size:13.5px;color:var(--subt,#6e6e73);">Estimating shadows…</span>
+          <span style="font-size:13.5px;color:var(--subt,#6e6e73);">{{ t.estimating }}</span>
         </div>
       </sc-if>
     </div>
@@ -235,20 +258,75 @@ class Component extends DCLogic {
     ];
     const f=this.POIS[0], t=this.POIS[1];
     this.state={
-      theme:'light', view:'home',
+      theme:'light', view:'home', lang:'de',
       vw:(typeof window!=='undefined'?window.innerWidth:1280),
       from:f, to:t, fromText:f.name, toText:t.name,
       fromOpen:false, toOpen:false, fromSug:[], toSug:[],
       routes:[], userPicked:null,
       shadeWeight:(props&&props.defaultShade!=null)?props.defaultShade:70,
-      hour:15, speedRaw:45, avoidStairs:false, loading:false
+      hour:15, speedRaw:45, avoidStairs:false, loading:false, osmWarn:false
     };
     this._enriched=[]; this._sig='';
+    this._osm=null; this._field=null; this._fieldKey=''; this._osmCtrl=null;
   }
   componentDidMount(){
     try{ if(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches) this.setState({theme:'dark'}); }catch(e){}
     this._onResize=()=>{ this.setState({vw:window.innerWidth}); if(this._map){ setTimeout(()=>{try{this._map.invalidateSize();}catch(e){}},80); } };
     window.addEventListener('resize',this._onResize);
+    this.pickNearbyDefaults();
+  }
+  // Replace the Karlsruhe default pair with two places near the user.
+  async pickNearbyDefaults(){
+    try{
+      if(this.state.routes.length||this.state.fromText!==this.POIS[0].name||this.state.toText!==this.POIS[1].name) return;
+      const loc=await this._userLocation(); if(!loc) return;
+      if(this.state.routes.length||this.state.fromText!==this.POIS[0].name) return; // user typed meanwhile
+      const pl=await this._nearbyPlaces(loc.lat,loc.lng); if(!pl) return;
+      if(this.state.routes.length||this.state.fromText!==this.POIS[0].name) return;
+      this.setState({from:pl.from,to:pl.to,fromText:pl.from.name,toText:pl.to.name});
+    }catch(e){}
+  }
+  // GPS only if the geolocation permission is already granted; otherwise IP-based (no prompt).
+  _userLocation(){
+    return new Promise((res)=>{
+      const ip=async()=>{
+        for(const u of ['https://get.geojs.io/v1/ip/geo.json','https://ipapi.co/json/']){
+          try{ const j=await (await fetch(u)).json(); const lat=+(j.latitude!=null?j.latitude:j.lat), lng=+(j.longitude!=null?j.longitude:(j.lon!=null?j.lon:j.lng)); if(isFinite(lat)&&isFinite(lng)){ res({lat,lng,src:'ip'}); return; } }catch(e){}
+        }
+        res(null);
+      };
+      (async()=>{
+        try{
+          if(typeof navigator!=='undefined'&&navigator.permissions&&navigator.geolocation){
+            const st=await navigator.permissions.query({name:'geolocation'});
+            if(st.state==='granted'){
+              navigator.geolocation.getCurrentPosition(
+                p=>res({lat:p.coords.latitude,lng:p.coords.longitude,src:'gps'}),
+                ()=>ip(), {enableHighAccuracy:false,timeout:6000,maximumAge:600000});
+              return;
+            }
+          }
+        }catch(e){}
+        ip();
+      })();
+    });
+  }
+  async _nearbyPlaces(lat,lng){
+    const R=2600;
+    const q=`[out:json][timeout:25];(node(around:${R},${lat},${lng})[railway=station][name];node(around:${R},${lat},${lng})[public_transport=station][name];node(around:${R},${lat},${lng})[place~"square|neighbourhood|suburb|quarter"][name];node(around:${R},${lat},${lng})[amenity~"townhall|marketplace|university|theatre|library|community_centre"][name];node(around:${R},${lat},${lng})[tourism~"attraction|museum|viewpoint|gallery"][name];node(around:${R},${lat},${lng})[leisure=park][name];);out body 90;`;
+    let els=null;
+    for(const ep of ['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter','https://maps.mail.ru/osm/tools/overpass/api/interpreter']){
+      try{ const r=await fetch(ep,{method:'POST',body:'data='+encodeURIComponent(q),headers:{'Content-Type':'application/x-www-form-urlencoded'}}); const j=await r.json(); if(j&&j.elements){ els=j.elements; break; } }catch(e){}
+    }
+    if(!els||!els.length) return null;
+    const seen=new Set(), pts=[];
+    for(const e of els){ if(e.lat==null||!e.tags||!e.tags.name) continue; if(seen.has(e.tags.name)) continue; seen.add(e.tags.name); pts.push({name:e.tags.name,lat:e.lat,lng:e.lon,d:this.hav([lat,lng],[e.lat,e.lon])}); }
+    pts.sort((a,b)=>a.d-b.d);
+    if(pts.length<2) return null;
+    const from=pts[0];
+    let to=pts.find(p=>p!==from&&this.hav([from.lat,from.lng],[p.lat,p.lng])>=300&&this.hav([from.lat,from.lng],[p.lat,p.lng])<=2200);
+    if(!to) to=pts[1];
+    return {from:{name:from.name,lat:from.lat,lng:from.lng}, to:{name:to.name,lat:to.lat,lng:to.lng}};
   }
   componentWillUnmount(){ if(this._onResize) window.removeEventListener('resize',this._onResize); this.cleanupHero(); }
   componentDidUpdate(){ this.syncMap(); this.syncHeroMap(); }
@@ -269,8 +347,7 @@ class Component extends DCLogic {
   }
 
   /* ---------- real shade engine (engine.js) ---------- */
-  sunDate(hour){ const d=new Date(); d.setHours(hour,Math.round((hour%1)*60)||0,0,0); return d; }
-  // Build (and cache) a real shadow field from fetched OSM buildings/trees for the current hour.
+  sunDate(hour){ const d=new Date(); d.setHours(hour,0,0,0); return d; }
   getField(){
     if(typeof window==='undefined'||!window.ShadeEngine) return null;
     const osm=this._osm; if(!osm||!osm.buildings) return null;
@@ -283,28 +360,98 @@ class Component extends DCLogic {
     this._fieldKey=key;
     return this._field;
   }
-  // Fetch real building footprints + trees for the corridor around the candidate routes.
   async loadOsm(routes){
     if(typeof window==='undefined'||!window.ShadeEngine){ this._osm=null; return; }
     let s=90,w=180,n=-90,e=-180;
     routes.forEach(r=>r.coords.forEach(c=>{ if(c[0]<s)s=c[0]; if(c[0]>n)n=c[0]; if(c[1]<w)w=c[1]; if(c[1]>e)e=c[1]; }));
     if(s>n) return;
-    const padLat=0.0016, padLon=0.0024; // ~180 m corridor padding
+    const padLat=0.0016, padLon=0.0024;
     const bbox=[s-padLat,w-padLon,n+padLat,e+padLon];
     const areaKm2=Math.abs((bbox[2]-bbox[0])*111.32*(bbox[3]-bbox[1])*111.32*Math.cos((s+n)/2*Math.PI/180));
     const key=bbox.map(x=>x.toFixed(4)).join(',');
-    if(this._osm&&this._osm.key===key) return;
+    const center=[(s+n)/2,(w+e)/2];
+    if(this._osm&&this._osm.key===key&&this._osm.buildings&&this._osm.buildings.length) return; // re-fetch if the last load for this bbox came back empty (failed)
     this._field=null; this._fieldKey='';
-    if(areaKm2>45){ this._osm={buildings:[],trees:[],key,center:[(s+n)/2,(w+e)/2]}; return; } // too large → stay quick
+    if(areaKm2>45){ this._osm={buildings:[],trees:[],key,center}; return; }
     if(this._osmCtrl) try{this._osmCtrl.abort();}catch(_){}
     this._osmCtrl=new AbortController();
     try{
-      const data=await window.ShadeEngine.fetchBuildingsTrees(bbox,{month:(new Date()).getMonth()+1,signal:this._osmCtrl.signal});
-      this._osm={buildings:data.buildings,trees:data.trees,key,center:[(s+n)/2,(w+e)/2]};
-    }catch(err){ if(err.name!=='AbortError') this._osm={buildings:[],trees:[],key,center:[(s+n)/2,(w+e)/2]}; }
+      const osm=await this.getOsm(bbox,this._osmCtrl.signal);
+      this._osm={buildings:osm.buildings||[],trees:osm.trees||[],key,center};
+      if(!(osm.buildings&&osm.buildings.length)) this.setState({osmWarn:true});
+    }catch(err){ if(err.name!=='AbortError'){ this._osm={buildings:[],trees:[],key,center}; this.setState({osmWarn:true}); } }
     this._field=null; this._fieldKey='';
   }
-  // Items (buildings/trees, each with .center [lat,lng]) within threshM of the route; nearest `cap`.
+  // Shared OSM fetch + sessionStorage cache. Reuses any cached area that fully COVERS the
+  // requested bbox, so the hero's data serves central routes and reloads/re-searches need
+  // no new Overpass call. sessionStorage survives reloads (clears only on tab close).
+  async getOsm(bbox,signal){
+    const hit=this._osmCacheGet(bbox);
+    if(hit) return hit;
+    if(signal&&signal.aborted) throw new DOMException('aborted','AbortError');
+    const ctrl=new AbortController(); let timed=false;
+    const onAbort=()=>{ try{ctrl.abort();}catch(_){} };
+    if(signal) signal.addEventListener('abort',onAbort);
+    const to=setTimeout(()=>{ timed=true; try{ctrl.abort();}catch(_){} },7000); // Overpass too slow → use static
+    try{
+      const data=await window.ShadeEngine.fetchBuildingsTrees(bbox,{month:(new Date()).getMonth()+1,signal:ctrl.signal});
+      clearTimeout(to);
+      const osm={buildings:(data&&data.buildings)||[],trees:(data&&data.trees)||[]};
+      if(osm.buildings.length){ this._osmCachePut(bbox,osm); return osm; }
+      return await this._staticForBbox(bbox);
+    }catch(err){
+      clearTimeout(to);
+      if(signal&&signal.aborted&&!timed) throw err;   // caller cancelled (e.g. a newer search)
+      return await this._staticForBbox(bbox);           // timeout or Overpass error → static backup
+    }finally{ if(signal) signal.removeEventListener('abort',onAbort); }
+  }
+  // Static Karlsruhe dataset (buildings + trees) bundled with the app — backup when
+  // Overpass is unreachable. Loaded once into memory, then filtered per request.
+  async getStaticOsm(){
+    if(this._staticOsm) return this._staticOsm;
+    if(!this._staticOsmP){
+      this._staticOsmP=(async()=>{
+        try{
+          const res=await fetch('karlsruhe.json',{cache:'force-cache'});
+          if(!res.ok) throw new Error('http '+res.status);
+          const j=await res.json();
+          const leafOn=[0.05,0.05,0.15,0.5,0.85,1,1,1,0.9,0.6,0.2,0.05];
+          const lf=leafOn[(new Date()).getMonth()];
+          const buildings=[];
+          for(const a of (j.b||[])){ if(a.length<7) continue; const ring=[]; for(let i=1;i+1<a.length;i+=2) ring.push({lat:a[i],lon:a[i+1]}); if(ring.length>=3) buildings.push({ring,h:a[0]||9}); }
+          const trees=(j.t||[]).map(a=>({lat:a[0],lon:a[1],h:a[2],crownR:a[3],density:a[5]?a[4]:a[4]*lf}));
+          this._staticOsm={buildings,trees,bbox:j.bbox||null};
+        }catch(e){ this._staticOsm={buildings:[],trees:[],bbox:null}; }
+        return this._staticOsm;
+      })();
+    }
+    return this._staticOsmP;
+  }
+  async _staticForBbox(bbox){
+    const all=await this.getStaticOsm();
+    if(!all||!all.buildings||!all.buildings.length) return {buildings:[],trees:[]};
+    const inB=(la,lo)=>la>=bbox[0]&&la<=bbox[2]&&lo>=bbox[1]&&lo<=bbox[3];
+    const buildings=all.buildings.filter(b=>{ let sl=0,so=0; for(const p of b.ring){ sl+=p.lat; so+=p.lon; } const n=b.ring.length||1; return inB(sl/n,so/n); });
+    const trees=all.trees.filter(t=>inB(t.lat,t.lon));
+    return {buildings,trees};
+  }
+  _osmCacheGet(bbox){
+    try{ const ss=window.sessionStorage; if(!ss) return null;
+      for(let i=0;i<ss.length;i++){ const k=ss.key(i); if(!k||k.indexOf('swOsmC|')!==0) continue;
+        let o; try{o=JSON.parse(ss.getItem(k));}catch(_){continue;}
+        if(!o||!o.b||!o.d) continue; const b=o.b, E=1e-6;
+        if(b[0]<=bbox[0]+E&&b[1]<=bbox[1]+E&&b[2]>=bbox[2]-E&&b[3]>=bbox[3]-E) return o.d;
+      }
+    }catch(_){}
+    return null;
+  }
+  _osmCachePut(bbox,d){
+    try{ const ss=window.sessionStorage; if(!ss) return;
+      const key='swOsmC|'+bbox.map(x=>x.toFixed(4)).join(','), payload=JSON.stringify({b:bbox,d:d});
+      try{ ss.setItem(key,payload); }
+      catch(e){ for(let i=ss.length-1;i>=0;i--){ const kk=ss.key(i); if(kk&&kk.indexOf('swOsmC|')===0) ss.removeItem(kk); } try{ ss.setItem(key,payload); }catch(_){} }
+    }catch(_){}
+  }
   _nearRoute(list,coords,threshM,cap){
     if(!list||!list.length||!coords.length) return [];
     const pts=coords.filter((_,i)=>i%2===0); const lat0=coords[0][0];
@@ -366,7 +513,6 @@ class Component extends DCLogic {
     let raw=await this.fetchAlternatives(from,to);
     if(!raw||raw.length<2){ const s=this.synth(from,to); raw=raw&&raw.length?raw.concat(s).slice(0,3):s; }
     raw=raw.slice(0,3).map((r,i)=>({id:i,coords:r.coords,dist:r.dist,stairsPenalty:this.hash2(i*5+1,i+3)}));
-    // Routes appear immediately (fast); real shade is computed once OSM data arrives.
     this.setState({from,to,fromText:from.name,toText:to.name,routes:raw,userPicked:null});
     await this.loadOsm(raw);
     this.setState({loading:false});
@@ -377,15 +523,13 @@ class Component extends DCLogic {
     const field=this.getField();
     return routes.map(rt=>{
       const c=rt.coords;
-      // Real shade fraction of the whole route (sampled every 8 m against the shadow field).
       const shadeFrac=field?field.shadeFractionOfRoute(c):0.30;
-      // Per-segment shade for colouring the route on the map.
       const segs=[]; let tot=0; const step=Math.max(1,Math.floor(c.length/60));
       for(let i=step;i<c.length;i+=step){
         const a=c[i-step],b=c[i];const len=this.hav(a,b);if(len<1)continue;
         const mid=[(a[0]+b[0])/2,(a[1]+b[1])/2];
-        const s=field?field.shadeAtLatLng(mid[0],mid[1]):0.30;
-        segs.push({a,b,mid,len,s}); tot+=len;
+        const sgl=field?field.shadeAtLatLng(mid[0],mid[1]):0.30;
+        segs.push({a,b,mid,len,s:sgl}); tot+=len;
       }
       if(!segs.length){segs.push({a:c[0],b:c[c.length-1],mid:c[0],len:rt.dist||1,s:shadeFrac});}
       const distKm=(rt.dist||tot)/1000;
@@ -411,7 +555,7 @@ class Component extends DCLogic {
   tileUrl(){ return this.state.theme==='dark'?'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png':'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'; }
   vColor(name){
     const dark=this.state.theme==='dark';
-    const m={shade:dark?'#8fa4ff':'#4f6ed6',sun:dark?'#ffb84d':'#f5a623',accent:dark?'#5e9bf0':'#2c6ecb',casing:dark?'#0c0d12':'#ffffff',faint:dark?'#646874':'#b8b8c2',bldg:dark?'#6a6f7d':'#9aa2b4',bstroke:dark?'#c9cdd8':'#6f778c',shadow:dark?'#ffffff':'#222740',tree:dark?'#5cc473':'#3a9a52',treeStroke:dark?'#b6ebc2':'#2c7a3e',treeShadow:dark?'#e2f6e7':'#1c4124'};
+    const m={shade:dark?'#8fa4ff':'#4f6ed6',sun:dark?'#ffb84d':'#f5a623',accent:dark?'#5e9bf0':'#2c6ecb',casing:dark?'#0c0d12':'#ffffff',faint:dark?'#646874':'#b8b8c2',bldg:dark?'#9aa1b2':'#9aa2b4',bstroke:dark?'#d4d8e2':'#6f778c',shadow:dark?'#ffffff':'#222740',tree:dark?'#5cc473':'#3a9a52',treeStroke:dark?'#b6ebc2':'#2c7a3e',treeShadow:dark?'#e2f6e7':'#1c4124'};
     return m[name];
   }
   ensureMap(){
@@ -442,33 +586,19 @@ class Component extends DCLogic {
     const sel=this.selectedId();
     en.forEach(e=>{ if(e.id!==sel) L.polyline(e.coords,{color:this.vColor('faint'),weight:4,opacity:.5,lineJoin:'round'}).addTo(this._routeLayer); });
     const cur=en.find(e=>e.id===sel)||en[0];
-    // casing
     L.polyline(cur.coords,{color:this.vColor('casing'),weight:11,opacity:.95,lineJoin:'round',lineCap:'round'}).addTo(this._routeLayer);
 
-    // REAL buildings + their REAL cast shadows (OSM footprints near the route)
     const field=this.getField();
     if(field){
       const dark=this.state.theme==='dark';
       const bld=this._nearRoute(field.buildingsLatLng,cur.coords,70,150);
-      bld.forEach(b=>{
-        if(b.shadow) L.polygon(b.shadow,{stroke:false,fill:true,fillColor:this.vColor('shadow'),fillOpacity:dark?0.5:0.32}).addTo(this._shadowLayer);
-      });
-      bld.forEach(b=>{
-        L.polygon(b.footprint,{color:this.vColor('bstroke'),weight:1.2,fillColor:this.vColor('bldg'),fillOpacity:.96})
-          .bindTooltip('≈ '+Math.round(b.h)+' m',{className:'sw-bh',direction:'top',offset:[0,-2]}).addTo(this._bldgLayer);
-      });
-      // REAL street trees + their cast shadows
+      bld.forEach(b=>{ if(b.shadow) L.polygon(b.shadow,{stroke:false,fill:true,fillColor:this.vColor('shadow'),fillOpacity:dark?0.5:0.32}).addTo(this._shadowLayer); });
+      bld.forEach(b=>{ L.polygon(b.footprint,{color:this.vColor('bstroke'),weight:1.2,fillColor:this.vColor('bldg'),fillOpacity:.96}).bindTooltip('≈ '+Math.round(b.h)+' m',{className:'sw-bh',direction:'top',offset:[0,-2]}).addTo(this._bldgLayer); });
       const trees=this._nearRoute(field.treesLatLng,cur.coords,55,140);
-      trees.forEach(t=>{
-        if(t.shadow) L.circle(t.shadow.center,{radius:t.shadow.r*1.12,stroke:false,fillColor:this.vColor('treeShadow'),fillOpacity:dark?(0.42*t.density+0.12):(0.30*t.density+0.05)}).addTo(this._shadowLayer);
-      });
-      trees.forEach(t=>{
-        L.circle(t.center,{radius:Math.max(2,t.crownR),color:this.vColor('treeStroke'),weight:1.2,fillColor:this.vColor('tree'),fillOpacity:.9})
-          .bindTooltip('Tree ≈ '+Math.round(t.h)+' m',{className:'sw-bh',direction:'top',offset:[0,-2]}).addTo(this._bldgLayer);
-      });
+      trees.forEach(t=>{ if(t.shadow) L.circle(t.shadow.center,{radius:t.shadow.r*1.12,stroke:false,fillColor:this.vColor('treeShadow'),fillOpacity:dark?(0.42*t.density+0.12):(0.30*t.density+0.05)}).addTo(this._shadowLayer); });
+      trees.forEach(t=>{ L.circle(t.center,{radius:Math.max(2,t.crownR),color:this.vColor('treeStroke'),weight:1.2,fillColor:this.vColor('tree'),fillOpacity:.9}).bindTooltip('Baum ≈ '+Math.round(t.h)+' m',{className:'sw-bh',direction:'top',offset:[0,-2]}).addTo(this._bldgLayer); });
     }
 
-    // shaded / sunny sidewalk segments (real shade)
     cur.segs.forEach(sg=>{
       const shaded=sg.s>=0.5;
       L.polyline([sg.a,sg.b],{color:shaded?this.vColor('shade'):this.vColor('sun'),weight:shaded?7:5,opacity:shaded?.95:.85,lineCap:'round'}).addTo(this._routeLayer);
@@ -484,6 +614,8 @@ class Component extends DCLogic {
     if(el){ this._heroMapEl=el; this._tryHero(0); }
     else { this.cleanupHero(); this._heroMapEl=null; }
   }
+  setHeroSunEl=(el)=>{ this._heroSunEl=el||null; if(!el) this._heroSunDot=null; }
+  setHeroTextEl=(el)=>{ this._heroTextEl=el||null; }
   _tryHero(n){
     if(this.state.view!=='home'||!this._heroMapEl||this._heroMap) return;
     if(window.L){ this.ensureHeroMap(); }
@@ -491,68 +623,208 @@ class Component extends DCLogic {
   }
   cleanupHero(){
     if(this._heroTimer){ clearInterval(this._heroTimer); this._heroTimer=null; }
+    if(this._heroResize){ window.removeEventListener('resize',this._heroResize); this._heroResize=null; }
+    clearTimeout(this._heroReload); clearTimeout(this._heroFallbackT);
+    if(this._heroOsmCtrl){ try{this._heroOsmCtrl.abort();}catch(e){} this._heroOsmCtrl=null; }
+    if(this._heroSunEl){ this._heroSunEl.innerHTML=''; } this._heroSunDot=null;
     if(this._heroMap){ try{this._heroMap.remove();}catch(e){} this._heroMap=null; }
   }
   genHeroBuildings(){
-    const bs=[]; const C=this.CENTER;
-    for(let gx=-3;gx<=3;gx++) for(let gy=-3;gy<=3;gy++){
-      if(this.hash(gx*3.3+10,gy*7.1+4)<0.26) continue;
-      const jx=(this.hash(gx,gy)-0.5)*70, jy=(this.hash2(gx,gy)-0.5)*70;
-      const center=this.addM(C, gy*135+jy, gx*135+jx);
-      const ang=this.hash(gx*5,gy*9)*Math.PI; const un=Math.cos(ang),ue=Math.sin(ang); const pn=-ue,pe=un;
-      const hl=14+this.hash2(gx,gy)*16, hw=10+this.hash(gy,gx)*12;
+    const bs=[]; const map=this._heroMap; if(!map||!window.L) return bs;
+    const size=map.getSize(); const W=size.x||window.innerWidth||1200;
+    const visH=Math.min(size.y||800,(window.innerHeight||size.y||800)); const H=visH+120;
+    const step=88; // pixel grid → building count / coverage scales with the screen
+    const cols=Math.ceil(W/step)+2, rows=Math.ceil(H/step)+2;
+    for(let i=-1;i<cols;i++) for(let j=-1;j<rows;j++){
+      if(this.hash(i*3.3+10,j*7.1+4)<0.22) continue; // ~22% gaps for streets / squares
+      const px=i*step+(this.hash(i,j)-0.5)*step*0.72;
+      const py=j*step+(this.hash2(i,j)-0.5)*step*0.72;
+      const ll=map.containerPointToLatLng([px,py]); const center=[ll.lat,ll.lng];
+      const ang=this.hash(i*5,j*9)*Math.PI; const un=Math.cos(ang),ue=Math.sin(ang); const pn=-ue,pe=un;
+      const hl=12+this.hash2(i,j)*17, hw=9+this.hash(j,i)*12;
       const F=[[hl,hw],[hl,-hw],[-hl,-hw],[-hl,hw]].map(([al,pp])=>({n:al*un+pp*pn,e:al*ue+pp*pe}));
-      const h=10+this.hash(gx*2+1,gy*2+1)*42;
+      const h=10+this.hash(i*2+1,j*2+1)*46;
       bs.push({center,F,h});
     }
     return bs;
+  }
+  // Real OSM footprints across the visible hero viewport via the proven ShadeEngine
+  // fetch. Cached in sessionStorage so reloads reuse the data instead of re-hitting
+  // Overpass (which keeps the route planner from being rate-limited). Fast synthetic
+  // fallback if Overpass is slow/unreachable, so the hero is never empty.
+  async loadHeroBuildings(){
+    const map=this._heroMap, mapEl=this._heroMapEl;
+    if(typeof window==='undefined'||!window.ShadeEngine||!map){ this._heroBuildings=this.genHeroBuildings(); this.drawHeroBuildings(); this.drawHeroShadows(); return; }
+    let c0,c1;
+    try{
+      const W=(mapEl&&mapEl.clientWidth)||map.getSize().x;
+      const Hv=Math.min((mapEl&&mapEl.clientHeight)||map.getSize().y,(window.innerHeight||map.getSize().y));
+      c0=map.containerPointToLatLng([0,0]); c1=map.containerPointToLatLng([W,Hv]);
+    }catch(e){ this._heroBuildings=this.genHeroBuildings(); this.drawHeroBuildings(); this.drawHeroShadows(); return; }
+    const s0=Math.min(c0.lat,c1.lat), n0=Math.max(c0.lat,c1.lat), w0=Math.min(c0.lng,c1.lng), e0=Math.max(c0.lng,c1.lng);
+    const vcLat=(s0+n0)/2, vcLng=(w0+e0)/2, cosL=Math.cos(vcLat*Math.PI/180);
+    const halfLat=Math.min(720,(n0-s0)/2*111111+90), halfLon=Math.min(1100,(e0-w0)/2*111111*cosL+90);
+    const dLat=halfLat/111111, dLon=halfLon/(111111*cosL);
+    const bbox=[vcLat-dLat,vcLng-dLon,vcLat+dLat,vcLng+dLon];
+    if(this._heroOsmCtrl){ try{this._heroOsmCtrl.abort();}catch(_){} }
+    const ctrl=new AbortController(); this._heroOsmCtrl=ctrl;
+    clearTimeout(this._heroFallbackT);
+    this._heroFallbackT=setTimeout(()=>{ if(this._heroMap&&!(this._heroBuildings&&this._heroBuildings.length)){ this._heroBuildings=this.genHeroBuildings(); this.drawHeroBuildings(); this.drawHeroShadows(); } },3500);
+    const hardStop=setTimeout(()=>{ try{ctrl.abort();}catch(_){} if(this._heroMap) this.setState({osmWarn:true}); },13000);
+    try{
+      const osm=await this.getOsm(bbox,ctrl.signal);
+      clearTimeout(hardStop);
+      if(ctrl.signal.aborted||!this._heroMap) return;
+      const sel=this.selectHeroBuildings((osm&&osm.buildings)||[],vcLat,vcLng);
+      if(sel.length){ clearTimeout(this._heroFallbackT); this._heroBuildings=sel; this.drawHeroBuildings(); this.drawHeroShadows(); }
+      else if(!(this._heroBuildings&&this._heroBuildings.length)){ this._heroBuildings=this.genHeroBuildings(); this.drawHeroBuildings(); this.drawHeroShadows(); }
+    }catch(err){
+      clearTimeout(hardStop);
+      if(err&&err.name==='AbortError') return;
+      if(this._heroMap) this.setState({osmWarn:true});
+      if(this._heroMap&&!(this._heroBuildings&&this._heroBuildings.length)){ this._heroBuildings=this.genHeroBuildings(); this.drawHeroBuildings(); this.drawHeroShadows(); }
+    }
+  }
+  // Overpass `out geom` elements -> [{ring:[{lat,lon}], h}] for the hero.
+  parseHeroOsm(els){
+    const out=[];
+    for(const el of (els||[])){
+      let g=null;
+      if(el.type==='way'&&el.geometry) g=el.geometry;
+      else if(el.type==='relation'&&el.members){ const o=el.members.find(m=>m&&m.role==='outer'&&m.geometry); if(o) g=o.geometry; }
+      if(!g||g.length<3) continue;
+      const ring=[]; for(const p of g){ if(p&&p.lat!=null&&p.lon!=null) ring.push({lat:p.lat,lon:p.lon}); }
+      if(ring.length>=3) out.push({ring,h:this.heroBldgHeight(el.tags||{})});
+    }
+    return out;
+  }
+  heroBldgHeight(t){
+    if(t&&t.height){ const h=parseFloat(String(t.height).replace(',','.')); if(isFinite(h)&&h>0) return h; }
+    if(t&&t['building:levels']){ const l=parseFloat(String(t['building:levels']).replace(',','.')); if(isFinite(l)&&l>0) return l*3.2; }
+    return 9;
+  }
+  // Raw OSM buildings ({ring,h}) -> hero {center,F,h}; keep the tallest building per
+  // ~118 m cell and spread the selection across the viewport so shadows stay readable.
+  selectHeroBuildings(raw,oLat,oLng){
+    oLat=oLat==null?this.CENTER[0]:oLat; oLng=oLng==null?this.CENTER[1]:oLng;
+    const mLat=111111, mLon=111111*Math.cos(oLat*Math.PI/180);
+    const cell=128, cells=new Map();
+    (raw||[]).forEach(b=>{
+      if(!b.ring||b.ring.length<3) return;
+      let slat=0,slon=0; for(const p of b.ring){ slat+=p.lat; slon+=p.lon; }
+      const clat=slat/b.ring.length, clon=slon/b.ring.length;
+      const dn=(clat-oLat)*mLat, de=(clon-oLng)*mLon;
+      const h=Math.max(4,b.h||9);
+      const F=b.ring.map(p=>({n:(p.lat-clat)*mLat,e:(p.lon-clon)*mLon}));
+      const key=Math.round(dn/cell)+'_'+Math.round(de/cell);
+      const cur=cells.get(key);
+      if(!cur||h>cur.h) cells.set(key,{center:[clat,clon],F,h});
+    });
+    let list=Array.from(cells.values());
+    // Fixed building "rate": cap scales with the visible map area, so smaller screens
+    // render proportionally fewer buildings (≈ 1 per 12k px²).
+    let cap=120;
+    try{ const sz=this._heroMap.getSize(); const vh=Math.min(sz.y,(typeof window!=='undefined'&&window.innerHeight)||sz.y); cap=Math.max(28,Math.min(150,Math.round(sz.x*vh/12000))); }catch(e){}
+    if(list.length>cap){ const step=Math.ceil(list.length/cap); list=list.filter((_,i)=>i%step===0); } // even spatial thinning, keeps spread
+    return list;
   }
   ensureHeroMap(){
     if(this._heroMap||!window.L||!this._heroMapEl) return;
     const L=window.L;
     this._heroMap=L.map(this._heroMapEl,{zoomControl:false,attributionControl:false,dragging:false,scrollWheelZoom:false,doubleClickZoom:false,boxZoom:false,keyboard:false,touchZoom:false,tap:false,interactive:false,zoomSnap:0}).setView(this.CENTER,15);
-    this._heroTiles=L.tileLayer(this.tileUrl(),{subdomains:'abcd',maxZoom:20,opacity:this.state.theme==='dark'?0.45:0.62}).addTo(this._heroMap);
+    this._heroTiles=L.tileLayer(this.tileUrl(),{subdomains:'abcd',maxZoom:20,opacity:this.state.theme==='dark'?0.92:0.62}).addTo(this._heroMap);
     this._heroShadow=L.layerGroup().addTo(this._heroMap);
     this._heroBldg=L.layerGroup().addTo(this._heroMap);
-    this._heroBuildings=this.genHeroBuildings();
+    this.applyHeroTileFx();
     this._heroTileTheme=this.state.theme;
     this._heroAng=1.05;
+    this.ensureHeroSun();
+    this._heroBuildings=[];                 // real OSM footprints load asynchronously below
     this.drawHeroBuildings();
-    const sun=L.divIcon({className:'',html:'<div style="width:24px;height:24px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffd27a,#f5a623);box-shadow:0 0 20px 5px rgba(245,166,35,.55);"></div>',iconSize:[24,24]});
-    this._heroSun=L.marker(this.CENTER,{icon:sun,interactive:false,keyboard:false}).addTo(this._heroBldg);
     this.drawHeroShadows();
-    this._heroTimer=setInterval(()=>{ this._heroAng+=0.035; this.drawHeroShadows(); }, 120);
-    setTimeout(()=>{try{this._heroMap.invalidateSize();}catch(e){}},80);
+    this._heroTimer=setInterval(()=>{ this._heroAng+=0.014; this.drawHeroShadows(); }, 70);
+    this._heroResize=()=>{ if(!this._heroMap) return; try{this._heroMap.invalidateSize();}catch(e){} this.drawHeroBuildings(); this.drawHeroShadows(); clearTimeout(this._heroReload); this._heroReload=setTimeout(()=>{ if(this._heroMap) this.loadHeroBuildings(); },700); };
+    window.addEventListener('resize',this._heroResize);
+    setTimeout(()=>{ if(this._heroResize) this._heroResize(); },90);
+    this.loadHeroBuildings();               // real buildings across the visible viewport
+  }
+  // Floating sun element. It lives above the map + vignette but below the hero text/card,
+  // so it sweeps the sky and is never trapped behind the search box.
+  ensureHeroSun(){
+    if(!this._heroSunEl||this._heroSunDot) return;
+    this._heroSunEl.innerHTML='';
+    const s=document.createElement('div');
+    s.style.cssText='position:absolute;left:0;top:0;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;background:radial-gradient(circle at 36% 32%,#fff7e0,#ffd982 42%,#f5a623 80%);box-shadow:0 0 40px 13px rgba(245,166,35,.45),0 0 14px 4px rgba(255,216,130,.85);will-change:left,top;pointer-events:none;';
+    this._heroSunEl.appendChild(s);
+    this._heroSunDot=s;
+  }
+  // Screen rect (hero-map pixels) covered by the intro paragraph, so buildings can be
+  // kept out from behind it — they would otherwise hurt the text contrast.
+  heroTextRect(){
+    const te=this._heroTextEl, mapEl=this._heroMapEl;
+    if(!te||!mapEl||!te.getBoundingClientRect) return null;
+    const tr=te.getBoundingClientRect(), mr=mapEl.getBoundingClientRect();
+    if(!tr.width||!tr.height) return null;
+    const px=26, py=28;
+    return {x0:tr.left-mr.left-px, y0:tr.top-mr.top-py, x1:tr.right-mr.left+px, y1:tr.bottom-mr.top+py};
   }
   drawHeroBuildings(){
     if(!this._heroMap||!window.L) return; const L=window.L; this._heroBldg.clearLayers();
+    const ex=this.heroTextRect();
     this._heroBuildings.forEach(b=>{
+      const cp=this._heroMap.latLngToContainerPoint(b.center);
+      b._hidden = ex ? (cp.x>=ex.x0&&cp.x<=ex.x1&&cp.y>=ex.y0&&cp.y<=ex.y1) : false;
+      if(b._hidden) return;
       const fp=b.F.map(p=>this.addM(b.center,p.n,p.e));
       L.polygon(fp,{color:this.vColor('bstroke'),weight:1,fillColor:this.vColor('bldg'),fillOpacity:0.92,interactive:false}).addTo(this._heroBldg);
     });
-    if(this._heroSun) this._heroSun.addTo(this._heroBldg);
   }
   drawHeroShadows(){
     if(!this._heroMap||!window.L) return; const L=window.L; this._heroShadow.clearLayers();
-    const elev=0.42, az=this._heroAng; const sunN=Math.cos(az), sunE=Math.sin(az);
-    const slenBase=1/Math.tan(elev);
+    this.ensureHeroSun();
+    // Sun follows a wide arch across the whole visible hero, scaled to the screen size.
+    const host=this._heroSunEl||this._heroMapEl;
+    const W=(host&&host.clientWidth)||this._heroMap.getSize().x;
+    const H=Math.min((host&&host.clientHeight)||this._heroMap.getSize().y,(window.innerHeight||(host&&host.clientHeight)||800));
+    const th=this._heroAng;
+    const nx=0.5-0.46*Math.cos(th);            // 0.04 .. 0.96 of the width
+    const x=nx*W;
+    const arch=1-Math.pow(2*nx-1,2);           // 0 at the edges, 1 at mid-sky
+    const y=H*0.30-(H*0.30-H*0.06)*arch;       // dips at the sides, peaks near the top
+    if(this._heroSunDot){ this._heroSunDot.style.left=x+'px'; this._heroSunDot.style.top=y+'px'; this._heroSunDot.style.opacity=(0.5+0.5*arch).toFixed(3); }
+    // One global sun direction (parallel rays) from the sun's screen vector; elevation from arch height.
+    const dx=x-W/2, dy=y-H*0.5, dl=Math.hypot(dx,dy)||1;
+    const sunN=-dy/dl, sunE=dx/dl;
+    const elev=0.2+0.5*arch, slenBase=1/Math.tan(elev);
     this._heroBuildings.forEach(b=>{
-      const slen=Math.max(8,Math.min(62,b.h*slenBase*0.5));
+      if(b._hidden) return;
+      const slen=Math.max(8,Math.min(72,b.h*slenBase*0.5));
       const Sn=-sunN*slen, Se=-sunE*slen;
       const all=b.F.concat(b.F.map(p=>({n:p.n+Sn,e:p.e+Se}))).map(p=>({x:p.e,y:p.n,n:p.n,e:p.e}));
       const poly=this.hull(all).map(p=>this.addM(b.center,p.n,p.e));
-      L.polygon(poly,{stroke:false,fill:true,fillColor:this.vColor('shadow'),fillOpacity:this.state.theme==='dark'?0.42:0.34,interactive:false}).addTo(this._heroShadow);
+      L.polygon(poly,{stroke:false,fill:true,fillColor:this.vColor('shadow'),fillOpacity:this.state.theme==='dark'?0.5:0.34,interactive:false}).addTo(this._heroShadow);
     });
-    if(this._heroSun){ const Rr=230; this._heroSun.setLatLng(this.addM(this.CENTER, sunN*Rr, sunE*Rr)); }
+  }
+  // Dark mode: brighten the very dark CARTO tiles so streets and the basemap (no-shadow)
+  // buildings become clearly visible. Filter applies to the tile layer only — overlay
+  // buildings/shadows live in a separate pane and stay as-is.
+  applyHeroTileFx(){
+    if(!this._heroTiles) return;
+    const dark=this.state.theme==='dark';
+    this._heroTiles.setOpacity(dark?0.92:0.62);
+    const c=this._heroTiles.getContainer&&this._heroTiles.getContainer();
+    if(c) c.style.filter=dark?'brightness(1.95) contrast(1.08)':'';
   }
   syncHeroMap(){
     if(this.state.view!=='home') return;
     if(!this._heroMap){ this._tryHero(0); return; }
-    if(this._heroTileTheme!==this.state.theme){ this._heroTiles.setUrl(this.tileUrl()); this._heroTiles.setOpacity(this.state.theme==='dark'?0.45:0.62); this._heroTileTheme=this.state.theme; this.drawHeroBuildings(); this.drawHeroShadows(); }
+    if(this._heroTileTheme!==this.state.theme){ this._heroTiles.setUrl(this.tileUrl()); this.applyHeroTileFx(); this._heroTileTheme=this.state.theme; this.drawHeroBuildings(); this.drawHeroShadows(); }
   }
 
   /* ---------- handlers ---------- */
   toggleTheme=()=>this.setState(s=>({theme:s.theme==='dark'?'light':'dark'}));
+  dismissOsmWarn=()=>this.setState({osmWarn:false});
+  toggleLang=()=>this.setState(s=>({lang:s.lang==='de'?'en':'de'}));
   goHome=()=>this.setState({view:'home',fromOpen:false,toOpen:false});
   filt(v){const q=(v||'').trim().toLowerCase();const base=q?this.POIS.filter(p=>p.name.toLowerCase().includes(q)):this.POIS;return base.slice(0,6);}
   onFromInput=(e)=>{const v=e.target.value;this.setState({fromText:v,from:null,fromSug:this.filt(v),fromOpen:true});}
@@ -561,41 +833,88 @@ class Component extends DCLogic {
   onToFocus=()=>this.setState({toSug:this.filt(this.state.toText),toOpen:true,fromOpen:false});
   pickFrom(p){this.setState({from:p,fromText:p.name,fromOpen:false});}
   pickTo(p){this.setState({to:p,toText:p.name,toOpen:false});}
+  // "Use my location" — explicit, high-accuracy GPS prompt; sets that end to the live position.
+  useMyLocFrom=()=>this.useMyLocation('from');
+  useMyLocTo=()=>this.useMyLocation('to');
+  useMyLocation(which){
+    const T=this.TT(); const t=T[this.state.lang]||T.de;
+    if(typeof navigator==='undefined'||!navigator.geolocation){ this.setState({fromOpen:false,toOpen:false}); return; }
+    const prev = which==='from'?this.state.fromText:this.state.toText;
+    if(which==='from') this.setState({fromText:t.locating,fromOpen:false,from:null});
+    else this.setState({toText:t.locating,toOpen:false,to:null});
+    navigator.geolocation.getCurrentPosition(
+      (p)=>{ const pt={name:t.myLoc.replace('📍 ',''),lat:p.coords.latitude,lng:p.coords.longitude};
+        if(which==='from') this.setState({from:pt,fromText:pt.name}); else this.setState({to:pt,toText:pt.name}); },
+      ()=>{ if(which==='from') this.setState({fromText:prev}); else this.setState({toText:prev}); },
+      {enableHighAccuracy:true,timeout:10000,maximumAge:0}
+    );
+  }
   swapEnds=()=>{this.setState(s=>({from:s.to,to:s.from,fromText:s.toText,toText:s.fromText}),()=>{if(this.state.routes.length)this.doSearch();});}
   selectRoute(id){this.setState({userPicked:id});}
   onWeight=(e)=>this.setState({shadeWeight:+e.target.value,userPicked:null});
   onHour=(e)=>this.setState({hour:+e.target.value});
   onSpeed=(e)=>this.setState({speedRaw:+e.target.value});
   toggleStairs=()=>this.setState(s=>({avoidStairs:!s.avoidStairs}));
-  fmtTime(m){const t=Math.round(m);return t>=60?`${Math.floor(t/60)}h ${t%60}m`:`${t} min`;}
+  startNav=()=>{
+    const f=this.state.from, t=this.state.to; if(!f||!t) return;
+    const q=new URLSearchParams({from:f.lat+','+f.lng, to:t.lat+','+t.lng, fromName:f.name||'Start', toName:t.name||'Ziel', hour:String(this.state.hour), shade:String(this.state.shadeWeight), theme:this.state.theme});
+    window.location.href='Navigator.dc.html?'+q.toString();
+  };
+  fmtTime(m){const t=Math.round(m);const en=this.state.lang==='en';return t>=60?(Math.floor(t/60)+(en?' h ':' Std ')+(t%60)+(en?' min':' Min')):(t+(en?' min':' Min'));}
+  TT(){ return {
+    de:{ brand:'SchattenRouten', badge:'Live · Routen im Schatten', h1a:'Geh im', h1b:'Schatten.',
+      intro:'SchattenRouten findet den kühlsten Weg durch die Stadt. Wir vergleichen mögliche Routen, schätzen den Schattenwurf von Gebäuden und Bäumen und führen dich über den schattigsten Weg.',
+      phFrom:'Start, z. B. Hauptbahnhof', phTo:'Ziel, z. B. Schloss', findBtn:'Schattigste Route finden',
+      candidates:'Routenvorschläge', reranked:'nach Schatten sortiert', inSun:'in der Sonne',
+      priority:'Priorität', fastest:'Schnellste', shadiest:'Schattigste', timeOfDay:'Tageszeit', sunWord:'Sonne',
+      speed:'Gehtempo', avoidStairs:'Treppen & steile Wege meiden', startNav:'Navigation starten',
+      disclaimer:'Gebäudeumrisse & -höhen und Straßenbäume stammen von OpenStreetMap; Schatten werden aus der echten Sonnenposition zur gewählten Zeit geschätzt. Nur als Orientierung gedacht.',
+      legend:'Legende', legShade:'Schattiger Gehweg', legSun:'In der Sonne', legBldg:'Gebäude', legHint:'(Höhe antippen)', legCast:'Schlagschatten',
+      estimating:'Schatten werden berechnet…', swap:'Tauschen', min:'Min', steps:'mit Stufen', stepFree:'stufenfrei', sunset:'unter',
+      myLoc:'📍 Mein Standort', locating:'Standort wird ermittelt…',
+      prio:['Tempo zuerst','Eher schnell','Ausgewogen','Eher schattig','Schatten zuerst'],
+      feat:[['Routen nach Schatten','Jede Route wird danach bewertet, wie viel davon im Schatten liegt, nicht nur nach Tempo.'],['Folgt der Sonne','Die geschätzten Gebäude- und Baumschatten werden neu berechnet, während die Sonne über den Himmel wandert.'],['Deine Wahl','Regle mit einem Schieber zwischen schnellster und schattigster Route. Komfort nach deinem Geschmack.']] },
+    en:{ brand:'ShadyRoutes', badge:'Live · routes in the shade', h1a:'Walk in the', h1b:'shade.',
+      intro:'ShadyRoutes finds the coolest way across town. We compare candidate routes, estimate the shadows cast by buildings and trees, and guide you down the shadiest path.',
+      phFrom:'Start, e.g. main station', phTo:'Destination, e.g. palace', findBtn:'Find the shadiest route',
+      candidates:'candidate routes', reranked:'shade re-ranked', inSun:'in sun',
+      priority:'Priority', fastest:'Fastest', shadiest:'Shadiest', timeOfDay:'Time of day', sunWord:'sun',
+      speed:'Walking speed', avoidStairs:'Avoid stairs & steep paths', startNav:'Start navigation',
+      disclaimer:'Building outlines & heights and street trees come from OpenStreetMap; shadows are estimated from the real sun position for the chosen time. Treat as guidance.',
+      legend:'Legend', legShade:'Shaded sidewalk', legSun:'Sun-exposed', legBldg:'Building', legHint:'(tap for height)', legCast:'Cast shadow',
+      estimating:'Estimating shadows…', swap:'Swap', min:'min', steps:'has steps', stepFree:'step-free', sunset:'set',
+      myLoc:'📍 My location', locating:'Locating…',
+      prio:['Speed first','Lean fast','Balanced','Lean shady','Shade first'],
+      feat:[['Shade-aware routing','Every candidate path is scored by how much of it stays in shadow, not just how fast it is.'],['Follows the sun','Estimated building and tree shadows recompute as the sun moves across the sky.'],['Your call','Slide between the fastest route and the shadiest with a single control. Comfort on your terms.']] }
+  }; }
 
   renderVals(){
     const s=this.state; const dark=s.theme==='dark'; const R=React.createElement;
-    const vars=dark?{bg:'#000000',panel:'#1c1c1e',panel2:'#2c2c2e',text:'#f5f5f7',subt:'#98989d',line:'rgba(255,255,255,0.13)',accent:'#5e9bf0',shade:'#7c93ff',sun:'#ffb340',mapbg:'#15151a',glass:'rgba(28,28,30,0.7)',shadow:'8px 8px 0 rgba(150,156,178,0.13)',shadowLg:'14px 14px 0 rgba(150,156,178,0.15)',homeShadow:'18px 18px 0 rgba(150,156,178,0.13)',homeShadowSm:'11px 11px 0 rgba(150,156,178,0.11)'}
-                  :{bg:'#f5f5f7',panel:'#ffffff',panel2:'#ececef',text:'#1d1d1f',subt:'#6e6e73',line:'rgba(0,0,0,0.08)',accent:'#2c6ecb',shade:'#4f6ed6',sun:'#f5a623',mapbg:'#e6e6ea',glass:'rgba(255,255,255,0.72)',shadow:'8px 8px 0 rgba(28,30,58,0.10)',shadowLg:'14px 14px 0 rgba(28,30,58,0.14)',homeShadow:'18px 18px 0 rgba(120,125,145,0.22)',homeShadowSm:'11px 11px 0 rgba(120,125,145,0.16)'};
+    const vars=dark?{bg:'#000000',panel:'#1c1c1e',panel2:'#2c2c2e',text:'#f5f5f7',subt:'#98989d',line:'rgba(255,255,255,0.13)',navline:'rgba(255,255,255,0.22)',accent:'#5e9bf0',shade:'#7c93ff',sun:'#ffb340',mapbg:'#15151a',glass:'rgba(28,28,30,0.82)',shadow:'8px 8px 0 rgba(150,156,178,0.13)',shadowLg:'14px 14px 0 rgba(150,156,178,0.15)',homeShadow:'18px 18px 0 rgba(150,156,178,0.13)',homeShadowSm:'11px 11px 0 rgba(150,156,178,0.11)'}
+                  :{bg:'#f5f5f7',panel:'#ffffff',panel2:'#ececef',text:'#1d1d1f',subt:'#6e6e73',line:'rgba(0,0,0,0.08)',navline:'rgba(0,0,0,0.08)',accent:'#2c6ecb',shade:'#4f6ed6',sun:'#f5a623',mapbg:'#e6e6ea',glass:'rgba(255,255,255,0.72)',shadow:'8px 8px 0 rgba(28,30,58,0.10)',shadowLg:'14px 14px 0 rgba(28,30,58,0.14)',homeShadow:'18px 18px 0 rgba(120,125,145,0.22)',homeShadowSm:'11px 11px 0 rgba(120,125,145,0.16)'};
 
+    const T=this.TT(); const t=T[s.lang]||T.de;
     const vw=s.vw||1280; const isMobile=vw<760;
     const introOn=!this._introDone;
     const mkIntro=(d)=>introOn?`animation:sw-rise .65s cubic-bezier(.2,.7,.2,1) both;animation-delay:${d}s;`:'';
 
     const features=[
-      {icon:'◑',title:'Shade-aware routing',body:'Every candidate path is scored by how much of it stays in shadow, not just how fast it is.',intro:mkIntro(0.30)},
-      {icon:'◷',title:'Follows the sun',body:'Estimated building and tree shadows recompute as the sun moves across the Karlsruhe sky.',intro:mkIntro(0.38)},
-      {icon:'✦',title:'Your call',body:'Slide between the fastest route and the shadiest with a single control — comfort on your terms.',intro:mkIntro(0.46)}
+      {icon:'◑',title:t.feat[0][0],body:t.feat[0][1],intro:mkIntro(0.30)},
+      {icon:'◷',title:t.feat[1][0],body:t.feat[1][1],intro:mkIntro(0.38)},
+      {icon:'✦',title:t.feat[2][0],body:t.feat[2][1],intro:mkIntro(0.46)}
     ];
 
-    const fromSug=(s.fromSug||[]).map((p,i)=>({name:p.name,pick:()=>this.pickFrom(p),key:i}));
-    const toSug=(s.toSug||[]).map((p,i)=>({name:p.name,pick:()=>this.pickTo(p),key:i}));
+    const fromSug=[{name:t.myLoc,pick:this.useMyLocFrom,key:'myloc'}].concat((s.fromSug||[]).map((p,i)=>({name:p.name,pick:()=>this.pickFrom(p),key:i})));
+    const toSug=[{name:t.myLoc,pick:this.useMyLocTo,key:'myloc'}].concat((s.toSug||[]).map((p,i)=>({name:p.name,pick:()=>this.pickTo(p),key:i})));
 
-    // ranked cards
     const rk=this.ranked(); const sel=this.selectedId();
     let fastId=null,shadeId=null;
     if(rk.length){ fastId=rk.reduce((a,b)=>b.timeMin<a.timeMin?b:a,rk[0]).id; shadeId=rk.reduce((a,b)=>b.shadeFrac>a.shadeFrac?b:a,rk[0]).id; }
     const palette=[vars.shade,'#2fa37e',vars.accent];
     const ranked=rk.map((e,i)=>{
       let tag=null,tagBg='',tagColor='';
-      if(e.id===shadeId){tag='Shadiest';tagBg=dark?'rgba(124,147,255,.2)':'#eaeeff';tagColor=vars.shade;}
-      else if(e.id===fastId){tag='Fastest';tagBg=dark?'rgba(255,179,64,.18)':'#fff2dc';tagColor=dark?'#ffb340':'#b9760a';}
+      if(e.id===shadeId){tag=t.shadiest;tagBg=dark?'rgba(124,147,255,.2)':'#eaeeff';tagColor=vars.shade;}
+      else if(e.id===fastId){tag=t.fastest;tagBg=dark?'rgba(255,179,64,.18)':'#fff2dc';tagColor=dark?'#ffb340':'#b9760a';}
       const sunMin=Math.round(e.timeMin*(1-e.shadeFrac));
       return {
         key:e.id, label:'Route '+String.fromCharCode(65+i),
@@ -608,18 +927,18 @@ class Component extends DCLogic {
         time:this.fmtTime(e.timeMin),
         shadePct:Math.round(e.shadeFrac*100),
         shadeLabel:Math.round(e.shadeFrac*100)+'%',
-        dist:e.distKm.toFixed(1)+' km',
-        sunMin:sunMin+' min',
-        stairs:e.hasStairs?'has steps':'step-free'
+        dist:(s.lang==='en'?e.distKm.toFixed(1):e.distKm.toFixed(1).replace('.',','))+' km',
+        sunMin:sunMin+' '+t.min,
+        stairs:e.hasStairs?t.steps:t.stepFree
       };
     });
 
     const w=s.shadeWeight;
-    const priorityLabel = w<20?'Speed first':w<45?'Lean fast':w<=60?'Balanced':w<82?'Lean shady':'Shade first';
-    const h=s.hour; const ampm=h===0?'12 AM':h<12?h+' AM':h===12?'12 PM':(h-12)+' PM';
+    const priorityLabel = w<20?t.prio[0]:w<45?t.prio[1]:w<=60?t.prio[2]:w<82?t.prio[3]:t.prio[4];
+    const h=s.hour; const ampm=s.lang==='en'?(h===0?'12 AM':h<12?h+' AM':h===12?'12 PM':(h-12)+' PM'):(h+' Uhr');
     const realSun=(typeof window!=='undefined'&&window.ShadeEngine)?window.ShadeEngine.sunPosition(this.sunDate(h),this.CENTER[0],this.CENTER[1]):null;
     const sunElevDeg=realSun?realSun.elevationDeg:this.sunElev(h)*82;
-    const sunLabel = sunElevDeg<=0.5?'set':Math.round(sunElevDeg)+'°';
+    const sunLabel = sunElevDeg<=0.5?t.sunset:Math.round(sunElevDeg)+'°';
 
     this._introDone=true;
     return {
@@ -637,12 +956,19 @@ class Component extends DCLogic {
       goHome:this.goHome, toggleTheme:this.toggleTheme,
       fromText:s.fromText, toText:s.toText, fromOpen:s.fromOpen, toOpen:s.toOpen, fromSug, toSug,
       onFromInput:this.onFromInput, onToInput:this.onToInput, onFromFocus:this.onFromFocus, onToFocus:this.onToFocus,
-      doSearch:()=>this.doSearch(), swapEnds:()=>this.swapEnds(), setMapEl:this.setMapEl, setHeroMapEl:this.setHeroMapEl, loading:s.loading,
+      useMyLocFrom:this.useMyLocFrom, useMyLocTo:this.useMyLocTo,
+      doSearch:()=>this.doSearch(), swapEnds:()=>this.swapEnds(), setMapEl:this.setMapEl, setHeroMapEl:this.setHeroMapEl, setHeroSunEl:this.setHeroSunEl, setHeroTextEl:this.setHeroTextEl, loading:s.loading,
       routeCount:rk.length||3, ranked,
       shadeWeight:s.shadeWeight, priorityLabel, onWeight:this.onWeight,
       hour:s.hour, hourLabel:ampm, sunLabel, onHour:this.onHour,
-      speedRaw:s.speedRaw, speedLabel:(s.speedRaw/10).toFixed(1)+' km/h', onSpeed:this.onSpeed,
-      stairsTrack: s.avoidStairs?vars.accent:vars.panel2, stairsKnob: s.avoidStairs?'21px':'3px', toggleStairs:this.toggleStairs
+      speedRaw:s.speedRaw, speedLabel:(s.lang==='en'?(s.speedRaw/10).toFixed(1):(s.speedRaw/10).toFixed(1).replace('.',','))+' km/h', onSpeed:this.onSpeed,
+      stairsTrack: s.avoidStairs?vars.accent:vars.panel2, stairsKnob: s.avoidStairs?'21px':'3px', toggleStairs:this.toggleStairs,
+      startNav:this.startNav,
+      t, toggleLang:this.toggleLang, langFlag:s.lang==='de'?'🇩🇪':'🇬🇧',
+      osmWarn:s.osmWarn, dismissOsmWarn:this.dismissOsmWarn,
+      osmWarnTitle:s.lang==='en'?'Map data is busy':'Kartendaten ausgelastet',
+      osmWarnBody:s.lang==='en'?'OpenStreetMap (Overpass) is experiencing heavy traffic and is rate-limiting requests, so buildings and shadows may not display. Please try again in a moment.':'OpenStreetMap (Overpass) hat gerade sehr viel Verkehr und begrenzt die Anfragen — Gebäude und Schatten werden evtl. nicht angezeigt. Bitte gleich noch einmal versuchen.',
+      osmWarnClose:s.lang==='en'?'Got it':'Verstanden'
     };
   }
 }

@@ -1,11 +1,17 @@
 {
   "name": "schatten-route",
   "version": "0.1.0",
-  "description": "Shade-aware pedestrian routing on OpenStreetMap data (Karlsruhe).",
+  "description": "Shade-aware pedestrian routing on OpenStreetMap data.",
   "type": "module",
   "scripts": {
     "serve": "node serve.mjs",
-    "test": "node tests/run.mjs"
+    "test": "node tests/run.mjs",
+    "test:unit": "node tests/run.mjs && node tests/fusion.test.mjs && node tests/engine.test.mjs && node tests/component.test.mjs && node tests/navigator.test.mjs",
+    "test:browser": "node tests/browser/smoke.mjs",
+    "test:e2e": "node tests/browser/nav.e2e.mjs"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "playwright": "^1.61.1"
+  }
 }

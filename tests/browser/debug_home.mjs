@@ -1,0 +1,23 @@
+import { chromium, devices } from 'playwright';
+import { startServer } from './server.mjs';
+const srv = await startServer();
+const browser = await chromium.launch();
+const ctx = await browser.newContext({ ...devices['Pixel 5'], locale: 'de-DE' });
+const page = await ctx.newPage();
+const errs = []; page.on('pageerror', e => errs.push(String(e)));
+page.on('console', m => { if (m.type() === 'error') errs.push('console:' + m.text()); });
+await page.goto(`${srv.url}/`, { waitUntil: 'load' });
+await page.waitForTimeout(3500);
+const info = await page.evaluate(() => {
+  const btns = Array.from(document.querySelectorAll('button')).map(b => ({ t: (b.textContent || '').slice(0, 20), al: b.getAttribute('aria-label') }));
+  const inp = document.querySelector('input');
+  const card = inp ? inp.closest('div').parentElement.outerHTML.slice(0, 900) : 'no input';
+  const hasGlyph = document.body.innerHTML.includes('◎');
+  return { buttonCount: btns.length, buttons: btns, hasCrosshairGlyph: hasGlyph, cardHtml: card };
+});
+console.log('errs:', errs.slice(0, 3));
+console.log('buttonCount:', info.buttonCount);
+console.log('buttons:', JSON.stringify(info.buttons));
+console.log('hasCrosshairGlyph(◎):', info.hasCrosshairGlyph);
+console.log('\n--- from-field area HTML ---\n', info.cardHtml);
+await browser.close(); await srv.close();

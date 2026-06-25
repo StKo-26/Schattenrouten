@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="nav-core.js"></script>
+<script src="nav-fusion.js"></script>
+<script src="engine.js"></script>
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased;overflow:hidden;}
+  @keyframes sw-spin{to{transform:rotate(360deg);}}
+  @keyframes sw-rise{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:none;}}
+  @keyframes sw-pulse{0%,100%{opacity:.55;}50%{opacity:1;}}
+  .leaflet-container{background:var(--mapbg,#e8e8ec)!important;font-family:inherit;}
+  .leaflet-control-attribution{font-size:10px;background:rgba(255,255,255,0.55)!important;}
+  .leaflet-tooltip.sw-bh{background:var(--panel,#fff);color:var(--text,#1d1d1f);border:0.5px solid var(--line,rgba(0,0,0,.1));border-radius:7px;box-shadow:0 4px 14px -4px rgba(0,0,0,.3);font-size:11px;font-weight:600;padding:3px 7px;}
+  .leaflet-tooltip.sw-bh:before{display:none;}
+  @media (prefers-reduced-motion: reduce){*{animation-duration:.001ms!important;transition-duration:.001ms!important;}}
+</style>
+</helmet>
+<div style="--bg:{{ vars.bg }};--panel:{{ vars.panel }};--panel2:{{ vars.panel2 }};--text:{{ vars.text }};--subt:{{ vars.subt }};--line:{{ vars.line }};--accent:{{ vars.accent }};--shade:{{ vars.shade }};--sun:{{ vars.sun }};--mapbg:{{ vars.mapbg }};--glass:{{ vars.glass }};height:100vh;background:var(--bg,#f5f5f7);color:var(--text,#1d1d1f);display:flex;flex-direction:column;overflow:hidden;">
+
+  <!-- TOP INSTRUCTION BANNER -->
+  <div style="position:relative;z-index:10;background:linear-gradient(135deg,var(--accent,#2c6ecb),var(--shade,#4f6ed6));color:#fff;padding:16px 18px calc(16px + env(safe-area-inset-top));box-shadow:0 10px 28px -14px rgba(0,0,0,.5);">
+    <div style="display:flex;align-items:center;gap:15px;max-width:760px;margin:0 auto;">
+      <button onClick="{{ endNav }}" aria-label="Zurück" style="border:0;background:rgba(255,255,255,.16);color:#fff;width:38px;height:38px;border-radius:12px;font-size:18px;cursor:pointer;flex:none;">‹</button>
+      <div style="width:58px;height:58px;border-radius:16px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:34px;line-height:1;flex:none;">{{ banner.ic }}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:21px;font-weight:680;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ banner.title }}</div>
+        <div style="font-size:13.5px;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ banner.sub }}</div>
+      </div>
+      <div style="text-align:right;flex:none;">
+        <div style="font-size:24px;font-weight:720;letter-spacing:-.02em;">{{ banner.dist }}</div>
+      </div>
+    </div>
+    <div style="max-width:760px;margin:8px auto 0;display:flex;align-items:center;gap:8px;font-size:13px;opacity:.82;">
+      <span style="font-size:15px;">{{ banner.thenIc }}</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ banner.then }}</span>
+    </div>
+  </div>
+
+  <!-- MAP -->
+  <div style="position:relative;flex:1;min-height:0;">
+    <div ref="{{ setMapEl }}" style="position:absolute;inset:0;z-index:0;"></div>
+
+    <div style="position:absolute;top:14px;right:14px;z-index:10;display:flex;align-items:center;gap:8px;padding:9px 13px;border-radius:100px;background:var(--glass,rgba(255,255,255,.85));backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:0.5px solid var(--line,rgba(0,0,0,.08));box-shadow:0 6px 18px -10px rgba(0,0,0,.4);font-size:13px;font-weight:600;">
+      <span style="width:12px;height:12px;border-radius:50%;background:{{ shadeAheadDot }};flex:none;"></span>{{ shadeAheadLabel }}
+    </div>
+
+    <button onClick="{{ recenter }}" aria-label="Zentrieren" style="position:absolute;right:14px;bottom:16px;z-index:10;width:46px;height:46px;border-radius:50%;border:0.5px solid var(--line,rgba(0,0,0,.08));background:var(--glass,rgba(255,255,255,.9));backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);color:var(--accent,#2c6ecb);font-size:20px;cursor:pointer;box-shadow:0 6px 18px -10px rgba(0,0,0,.45);">◎</button>
+
+    <div style="position:absolute;left:14px;bottom:16px;z-index:10;display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-radius:13px;background:var(--glass,rgba(255,255,255,.85));backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:0.5px solid var(--line,rgba(0,0,0,.08));box-shadow:0 6px 18px -10px rgba(0,0,0,.4);">
+      <div style="display:flex;align-items:center;gap:7px;font-size:11.5px;"><span style="width:16px;height:5px;border-radius:3px;background:var(--shade,#4f6ed6);"></span>Schatten</div>
+      <div style="display:flex;align-items:center;gap:7px;font-size:11.5px;"><span style="width:16px;height:5px;border-radius:3px;background:var(--sun,#f5a623);"></span>Sonne</div>
+    </div>
+
+    <sc-if value="{{ loading }}" hint-placeholder-val="{{ true }}">
+      <div style="position:absolute;inset:0;z-index:20;background:var(--glass,rgba(255,255,255,.82));backdrop-filter:blur(6px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;">
+        <div style="width:34px;height:34px;border-radius:50%;border:3px solid var(--line,rgba(0,0,0,.12));border-top-color:var(--accent,#2c6ecb);animation:sw-spin .8s linear infinite;"></div>
+        <span style="font-size:13.5px;color:var(--subt,#6e6e73);">{{ loadingText }}</span>
+      </div>
+    </sc-if>
+
+    <!-- RECALCULATING indicator (off-route -> new route) -->
+    <sc-if value="{{ rerouting }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;left:50%;top:18px;transform:translateX(-50%);z-index:26;display:flex;align-items:center;gap:11px;padding:12px 18px;border-radius:100px;background:var(--accent,#2c6ecb);color:#fff;box-shadow:0 12px 30px -8px rgba(0,0,0,.55);font-size:14px;font-weight:700;white-space:nowrap;">
+        <div style="width:17px;height:17px;border-radius:50%;border:2.5px solid rgba(255,255,255,.35);border-top-color:#fff;animation:sw-spin .7s linear infinite;flex:none;"></div>
+        Route wird neu berechnet …
+      </div>
+    </sc-if>
+
+    <!-- BIG RED NOTICE when GPS access was not granted -->
+    <sc-if value="{{ noGps }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;left:12px;right:12px;top:12px;z-index:30;background:#ff2d20;color:#fff;border:2px solid #fff;border-radius:18px;padding:18px 18px;box-shadow:0 16px 40px -8px rgba(255,45,32,.7);display:flex;align-items:flex-start;gap:14px;">
+        <div style="font-size:34px;line-height:1;flex:none;">⚠️</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:20px;font-weight:900;letter-spacing:-.02em;margin-bottom:4px;text-transform:uppercase;">{{ noGpsTitle }}</div>
+          <div style="font-size:14px;font-weight:600;opacity:.97;line-height:1.4;">{{ noGpsBody }}</div>
+          <button onClick="{{ useGps }}" style="margin-top:12px;border:0;background:#fff;color:#d12414;font-size:14.5px;font-weight:800;padding:11px 16px;border-radius:12px;cursor:pointer;">{{ noGpsRetry }}</button>
+        </div>
+      </div>
+    </sc-if>
+  </div>
+
+  <!-- BOTTOM SHEET -->
+  <div style="position:relative;z-index:10;background:var(--panel,#fff);border-top:0.5px solid var(--line,rgba(0,0,0,.08));padding:15px 18px calc(15px + env(safe-area-inset-bottom));box-shadow:0 -12px 30px -18px rgba(0,0,0,.4);">
+    <div style="max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:13px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="display:flex;align-items:baseline;gap:6px;">
+          <span style="font-size:26px;font-weight:720;letter-spacing:-.02em;color:var(--accent,#2c6ecb);">{{ etaText }}</span>
+          <span style="font-size:14px;color:var(--subt,#6e6e73);">· {{ remainText }}</span>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:20px;font-weight:700;color:var(--shade,#4f6ed6);">{{ shadePct }}%</div>
+          <div style="font-size:11px;color:var(--subt,#9b9ba0);text-transform:uppercase;letter-spacing:.05em;">im Schatten</div>
+        </div>
+      </div>
+
+      <div style="height:9px;border-radius:6px;background:var(--panel2,#ececef);overflow:hidden;display:flex;">
+        <div style="height:100%;width:{{ progressW }}%;background:linear-gradient(90deg,var(--shade,#4f6ed6),var(--accent,#2c6ecb));transition:width .2s linear;"></div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:9px;">
+        <button onClick="{{ useGps }}" style="flex:1;border:0;cursor:pointer;padding:13px;border-radius:13px;background:{{ navBtnBg }};color:{{ navBtnColor }};font-size:15px;font-weight:650;display:flex;align-items:center;justify-content:center;gap:8px;transition:filter .15s;" style-hover="filter:brightness(1.06);"><span style="font-size:17px;">{{ navBtnIc }}</span>{{ navBtnLabel }}</button>
+        <button onClick="{{ togglePlay }}" title="Demo (ohne Bewegung)" style="border:0.5px solid var(--line,rgba(0,0,0,.1));cursor:pointer;padding:13px 14px;border-radius:13px;background:var(--panel2,#ececef);color:var(--text,#1d1d1f);font-size:14px;font-weight:600;min-width:46px;">{{ playLabel }}</button>
+        <button onClick="{{ cycleSpeed }}" title="Demo-Tempo" style="border:0.5px solid var(--line,rgba(0,0,0,.1));cursor:pointer;padding:13px 12px;border-radius:13px;background:var(--panel2,#ececef);color:var(--text,#1d1d1f);font-size:14px;font-weight:650;min-width:46px;">{{ speedLabel }}</button>
+        <button onClick="{{ toggleTheme }}" aria-label="Ansicht" style="border:0.5px solid var(--line,rgba(0,0,0,.1));cursor:pointer;width:48px;height:48px;border-radius:13px;background:var(--panel2,#ececef);color:var(--text,#1d1d1f);font-size:16px;flex:none;">{{ themeIcon }}</button>
+      </div>
+      <div style="{{ statusStyle }}">{{ statusLine }}</div>
+    </div>
+  </div>
+
+  <!-- ARRIVAL -->
+  <sc-if value="{{ arrived }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;inset:0;z-index:40;background:var(--glass,rgba(255,255,255,.6));backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:24px;">
+      <div style="background:var(--panel,#fff);border:0.5px solid var(--line,rgba(0,0,0,.08));border-radius:24px;padding:30px 26px;max-width:380px;width:100%;text-align:center;box-shadow:0 30px 60px -24px rgba(0,0,0,.5);animation:sw-rise .5s cubic-bezier(.2,.7,.2,1) both;">
+        <div style="width:64px;height:64px;border-radius:50%;margin:0 auto 16px;background:linear-gradient(135deg,var(--shade,#4f6ed6),var(--accent,#2c6ecb));display:flex;align-items:center;justify-content:center;font-size:32px;color:#fff;">◉</div>
+        <div style="font-size:23px;font-weight:680;letter-spacing:-.02em;margin-bottom:6px;">Angekommen</div>
+        <div style="font-size:15px;color:var(--subt,#6e6e73);line-height:1.5;margin-bottom:22px;">Du bist an {{ toName }} angekommen.<br/><strong style="color:var(--shade,#4f6ed6);">{{ shadePct }}%</strong> deiner Route lagen im Schatten.</div>
+        <div style="display:flex;gap:10px;">
+          <button onClick="{{ restart }}" style="flex:1;border:0.5px solid var(--line,rgba(0,0,0,.12));cursor:pointer;padding:13px;border-radius:13px;background:var(--panel2,#ececef);color:var(--text,#1d1d1f);font-size:15px;font-weight:600;">Nochmal</button>
+          <button onClick="{{ endNav }}" style="flex:1;border:0;cursor:pointer;padding:13px;border-radius:13px;background:var(--accent,#2c6ecb);color:#fff;font-size:15px;font-weight:600;">Fertig</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:420,&quot;height&quot;:860}}">
+class Component extends DCLogic {
+  constructor(props){
+    super(props);
+    const q=new URLSearchParams((typeof window!=='undefined'?window.location.search:''));
+    const parseLL=(s,def)=>{ if(!s) return def; const p=s.split(',').map(Number); return (p.length===2&&!isNaN(p[0]))?p:def; };
+    const from=parseLL(q.get('from'),[49.0094,8.4001]);
+    const to=parseLL(q.get('to'),[49.0135,8.4044]);
+    this.state={
+      theme:'light',
+      from, to,
+      fromName:q.get('fromName')||'Start',
+      toName:q.get('toName')||'Ziel',
+      hour:q.get('hour')?+q.get('hour'):15,
+      weight:q.get('shade')?+q.get('shade'):70,
+      route:null, loading:true, loadingText:'Schattigste Route wird gesucht…',
+      progress:0, heading:0, playing:false, mode:'sim', speedMult:6,
+      arrived:false, gps:'off', userPt:null, rerouting:false, deviceHeading:null, vw:(typeof window!=='undefined'?window.innerWidth:1280)
+    };
+    this._navSig='';
+    this._ekf=null; this._stepDet=null; this._fuse=null; this._watch=null;
+    this._lastPredict=0; this._lastStep=0; this._heading=null; this._accuracy=null;
+    this._field=null; this._fieldRef=null; this._bldgNear=null; this._treeNear=null; this._osmCtrl=null;
+    this._offSince=0; this._lastReroute=0; this._rerouting=false; this._rerouteP=null;
+    this._candidates=null; this._refineP=null; this._fieldKey='';
+  }
+  componentDidMount(){
+    try{ if(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches) this.setState({theme:'dark'}); }catch(e){}
+    this._waitCore(0);
+    this._tick=setInterval(()=>this.step(),200);
+  }
+  componentWillUnmount(){
+    if(this._tick) clearInterval(this._tick);
+    this.stopReal();
+    if(this._osmCtrl){ try{this._osmCtrl.abort();}catch(e){} }
+    if(this._map){ try{this._map.remove();}catch(e){} }
+  }
+  componentDidUpdate(){ this.syncMap(); }
+
+  _waitCore(n){
+    if(window.NavCore){ this.loadRoute(); }
+    else if(n<60){ setTimeout(()=>this._waitCore(n+1),100); }
+  }
+  async loadRoute(){
+    const {from,to,weight}=this.state; const NC=window.NavCore;
+    const fetched=await NC.fetchRoutes(from,to);
+    this._candidates=(fetched&&fetched.length)?fetched:[NC.synth(from,to)];
+    // Show the route IMMEDIATELY (provisional shade), so a slow/flaky Overpass can
+    // never keep the user staring at a spinner. Real OSM shade loads in the background.
+    this._field=null; this._bldgNear=null; this._treeNear=null; this._fieldKey='';
+    const prov=NC.chooseShadiest(this._candidates,this.state.hour,weight)||this._candidates[0];
+    this.applyRoute(prov,from,to,true);
+    this.setState({loading:false,playing:false});
+    this._refineP=this.refineShade(from,to);
+  }
+  // Finalise a chosen route (distances, maneuvers, per-segment shade) and show it.
+  applyRoute(route,from,to,resetUser){
+    const NC=window.NavCore;
+    route.cum=NC.cumulative(route.coords);
+    route._total=route.cum[route.cum.length-1];
+    let mans=route.maneuvers;
+    if((!mans||mans.length<2)&&route.steps&&route.steps.length) mans=NC.buildManeuvers(route.steps);
+    if(!mans||mans.length<2){ mans=NC.synth(from,to).maneuvers; }
+    else {
+      if(mans[0].type!=='depart') mans.unshift({atDist:0,type:'depart',modifier:'',name:mans[0].name});
+      if(mans[mans.length-1].type!=='arrive') mans.push({atDist:route._total,type:'arrive',modifier:'',name:''});
+    }
+    route.maneuvers=mans;
+    this.precompute(route);
+    const head=route.coords.length>1?NC.bearing(route.coords[0],route.coords[1]):0;
+    const patch={route,progress:0,heading:head,arrived:false};
+    if(resetUser) patch.userPt=route.coords[0];
+    this.setState(patch);
+  }
+  // Background: fetch real OSM buildings/trees, then upgrade shade + draw buildings.
+  // At first load (not navigating) it may swap to the genuinely shadiest candidate.
+  async refineShade(from,to){
+    const list=this._candidates; if(!list) return;
+    await this.buildShadeField(list);
+    if(!this._field||!this._field.valid){ return; } // Overpass failed → route still shown, no buildings
+    if(this.state.mode==='gps'){
+      this.precompute(this.state.route);           // navigating: just refine current route
+      this.setState({route:this.state.route});
+    } else {
+      const best=this.chooseShadiestReal(list,this.state.weight)||this.state.route;
+      this.applyRoute(best,from,to,true);          // idle: upgrade to the real shadiest
+    }
+  }
+
+  /* ---- real shade engine (engine.js) — works for ANY start/end, anywhere ---- */
+  sunDate(hour){ const d=new Date(); d.setHours(hour,0,0,0); return d; }
+  // Fetch real OSM buildings/trees for the route bbox and build the shadow field.
+  async buildShadeField(routes){
+    this._field=null; this._fieldRef=null; this._bldgNear=null; this._treeNear=null;
+    if(typeof window==='undefined'||!window.ShadeEngine) return;
+    let s=90,w=180,n=-90,e=-180;
+    routes.forEach(r=>r.coords.forEach(c=>{ if(c[0]<s)s=c[0]; if(c[0]>n)n=c[0]; if(c[1]<w)w=c[1]; if(c[1]>e)e=c[1]; }));
+    if(s>n) return;
+    const padLat=0.0016, padLon=0.0024;
+    const bbox=[s-padLat,w-padLon,n+padLat,e+padLon];
+    const areaKm2=Math.abs((bbox[2]-bbox[0])*111.32*(bbox[3]-bbox[1])*111.32*Math.cos((s+n)/2*Math.PI/180));
+    if(areaKm2>55) return; // too large to fetch; segment shade falls back gracefully
+    const ref=[(s+n)/2,(w+e)/2];
+    let killer=null;
+    try{
+      if(this._osmCtrl){ try{this._osmCtrl.abort();}catch(_){} }
+      this._osmCtrl=new AbortController();
+      killer=setTimeout(()=>{ try{this._osmCtrl.abort();}catch(_){} },13000); // never hang the overlay
+      const date=this.sunDate(this.state.hour);
+      const data=await window.ShadeEngine.fetchBuildingsTrees(bbox,{month:date.getMonth()+1,signal:this._osmCtrl.signal});
+      const sun=window.ShadeEngine.sunPosition(date,ref[0],ref[1]);
+      this._field=window.ShadeEngine.buildField(data.buildings,data.trees,sun,ref[0],ref[1],date.getMonth()+1);
+      this._fieldRef=ref;
+    }catch(err){ this._field=null; }
+    finally{ if(killer) clearTimeout(killer); }
+  }
+  // Pick the route with the best time/shade utility using REAL shade fractions.
+  chooseShadiestReal(routes,weight){
+    const NC=window.NavCore; const w=(weight==null?0.7:weight/100);
+    if(!this._field||!this._field.valid){ return NC.chooseShadiest(routes,this.state.hour,weight); }
+    let best=null,bestU=-1;
+    routes.forEach(rt=>{ const cum=NC.cumulative(rt.coords); rt.len=cum[cum.length-1]; });
+    routes.forEach(rt=>{
+      rt.shadeFrac=this._field.shadeFractionOfRoute(rt.coords);
+      const u=w*rt.shadeFrac+(1-w)*(1-Math.min(1,rt.len/3000));
+      if(u>bestU){ bestU=u; best=rt; }
+    });
+    return best;
+  }
+  // Precompute per-segment shade + near-route buildings/trees once per route.
+  precompute(route){
+    const c=route.coords;
+    if(this._field&&this._field.valid){
+      if(route.shadeFrac==null) route.shadeFrac=this._field.shadeFractionOfRoute(c);
+      const seg=[];
+      for(let i=1;i<c.length;i++){ const mlat=(c[i-1][0]+c[i][0])/2, mlng=(c[i-1][1]+c[i][1])/2; seg.push(this._field.shadeAtLatLng(mlat,mlng)>=0.5); }
+      route.segShaded=seg;
+      this._bldgNear=this._nearRoute(this._field.buildingsLatLng,c,90,400);
+      this._treeNear=this._nearRoute(this._field.treesLatLng,c,70,400);
+    } else {
+      route.segShaded=null; this._bldgNear=null; this._treeNear=null;
+      if(route.shadeFrac==null) route.shadeFrac=0.5;
+    }
+  }
+  _nearRoute(list,coords,threshM,cap){
+    if(!list||!list.length||!coords.length) return [];
+    const pts=coords.filter((_,i)=>i%2===0); const lat0=coords[0][0];
+    const mLat=111320, mLon=111320*Math.cos(lat0*Math.PI/180), th2=threshM*threshM;
+    const near=[];
+    for(const it of list){ const cy=it.center[0], cx=it.center[1]; let bestd=Infinity;
+      for(const p of pts){ const dx=(cx-p[1])*mLon, dy=(cy-p[0])*mLat; const d=dx*dx+dy*dy; if(d<bestd){bestd=d; if(bestd<=th2)break;} }
+      if(bestd<=th2) near.push({it,d:bestd});
+    }
+    near.sort((a,b)=>a.d-b.d);
+    return near.slice(0,cap).map(x=>x.it);
+  }
+  // metres -> pixels at the map's current zoom (for tree-crown radii)
+  _mPx(m,ll,meters){
+    const L=window.L; if(!L) return Math.max(1,meters/3);
+    const a=m.latLngToContainerPoint(L.latLng(ll[0],ll[1]));
+    const b=m.latLngToContainerPoint(L.latLng(ll[0]+meters/111320,ll[1]));
+    return Math.max(1,Math.hypot(a.x-b.x,a.y-b.y));
+  }
+
+  step(){
+    const s=this.state;
+    if(!s.route||s.arrived||s.mode!=='sim'||!s.playing) return;
+    const NC=window.NavCore; const total=s.route._total;
+    const adv=1.4*s.speedMult*0.2;
+    let prog=Math.min(total, s.progress+adv);
+    const here=NC.pointAt(s.route.coords,s.route.cum,prog);
+    const ahead=NC.pointAt(s.route.coords,s.route.cum,Math.min(total,prog+6));
+    const head=NC.bearing([here.lat,here.lng],[ahead.lat,ahead.lng]);
+    if(prog>=total-0.6){ this.setState({progress:total,userPt:[here.lat,here.lng],heading:head,arrived:true,playing:false,_off:0}); }
+    else this.setState({progress:prog,userPt:[here.lat,here.lng],heading:head,_off:0});
+  }
+
+  /* ---- map ---- */
+  setMapEl=(el)=>{ this._mapEl=el; }
+  tileUrl(){ return this.state.theme==='dark'?'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png':'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'; }
+  vColor(name){
+    const dark=this.state.theme==='dark';
+    const m={shade:dark?'#8fa4ff':'#4f6ed6',sun:dark?'#ffb84d':'#f5a623',accent:dark?'#5e9bf0':'#2c6ecb',casing:dark?'#0c0d12':'#ffffff',bldg:dark?'#9aa1b2':'#9aa2b4',bstroke:dark?'#d4d8e2':'#6f778c',shadow:dark?'#ffffff':'#222740',tree:dark?'#5cc473':'#3a9a52',treeStroke:dark?'#b6ebc2':'#2c7a3e',treeShadow:dark?'#e2f6e7':'#1c4124'};
+    return m[name];
+  }
+  addM(p,n,e){return [p[0]+n/111111, p[1]+e/(111111*Math.cos(p[0]*Math.PI/180))];}
+  hull(pts){
+    pts=pts.slice().sort((a,b)=>a.x-b.x||a.y-b.y);
+    const cr=(o,a,b)=>(a.x-o.x)*(b.y-o.y)-(a.y-o.y)*(b.x-o.x);
+    const lo=[];for(const p of pts){while(lo.length>=2&&cr(lo[lo.length-2],lo[lo.length-1],p)<=0)lo.pop();lo.push(p);}
+    const up=[];for(let i=pts.length-1;i>=0;i--){const p=pts[i];while(up.length>=2&&cr(up[up.length-2],up[up.length-1],p)<=0)up.pop();up.push(p);}
+    lo.pop();up.pop();return lo.concat(up);
+  }
+  ensureMap(){
+    if(this._map||!window.L||!this._mapEl) return;
+    if(this._mapEl.clientHeight<10||this._mapEl.clientWidth<10) return; // wait until laid out
+    const L=window.L;
+    const start=this.state.route?this.state.route.coords[0]:window.NavCore.CENTER;
+    this._map=L.map(this._mapEl,{zoomControl:false,attributionControl:true}).setView(start,17);
+    this._tiles=L.tileLayer(this.tileUrl(),{subdomains:'abcd',maxZoom:20,detectRetina:true,attribution:'© OpenStreetMap, © CARTO'}).addTo(this._map);
+    this._tileTheme=this.state.theme;
+    // Custom SVG overlay drawn from map projection (bypasses Leaflet vector renderer).
+    const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+    svg.setAttribute('style','position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:450;');
+    this._mapEl.appendChild(svg); this._svg=svg;
+    const repaint=()=>{ try{ this.paintOverlay(); }catch(e){} };
+    this._map.on('move zoom moveend zoomend viewreset resize zoomanim', repaint);
+    this._mapReady=true;
+    setTimeout(()=>{try{ this._map.invalidateSize(); this.paintOverlay(); }catch(e){}},80);
+  }
+  syncMap(){
+    this.ensureMap();
+    // keep retrying until Leaflet has loaded AND the container is laid out (slow phones)
+    if(!this._map){ this._mapTries=(this._mapTries||0)+1; if(this._mapTries<160) setTimeout(()=>this.syncMap(),150); return; }
+    if(!this.state.route) return;
+    if(!this._mapReady) return;
+    if(this._map.getSize().x===0){ this._map.invalidateSize(); return; }
+    if(this._tileTheme!==this.state.theme){ this._tiles.setUrl(this.tileUrl()); this._tileTheme=this.state.theme; }
+    if(this._follow!==false && this.state.userPt){ const up=[+this.state.userPt[0],+this.state.userPt[1]]; this._map.setView(up,this._map.getZoom(),{animate:false}); }
+    try{ this.paintOverlay(); }catch(e){}
+  }
+  svgNode(t,attrs){ const e=document.createElementNS('http://www.w3.org/2000/svg',t); for(const k in attrs) e.setAttribute(k,attrs[k]); return e; }
+  paintOverlay(){
+    const m=this._map, svg=this._svg, rt=this.state.route, NC=window.NavCore;
+    if(!m||!svg||!rt||!NC) return;
+    const SZ=m.getSize(); svg.setAttribute('width',SZ.x); svg.setAttribute('height',SZ.y);
+    while(svg.firstChild) svg.removeChild(svg.firstChild);
+    const P=(ll)=>{ const p=m.latLngToContainerPoint(ll); return [p.x,p.y]; };
+    const coords=rt.coords; const cum=rt.cum;
+    // Real OSM building + tree shadows (engine.js), culled to the current viewport.
+    const field=this._field, dark=this.state.theme==='dark';
+    let bDrawn=0, tDrawn=0;
+    if(field&&field.valid&&window.L){
+      const bnds=m.getBounds().pad(0.3);
+      const inView=(ll)=>bnds.contains(window.L.latLng(ll[0],ll[1]));
+      (this._bldgNear||[]).forEach(b=>{ if(b.shadow&&inView(b.center)){ const sp=b.shadow.map(P); if(sp.length>=3) svg.appendChild(this.svgNode('polygon',{points:sp.map(q=>q.join(',')).join(' '),fill:this.vColor('shadow'),'fill-opacity':dark?0.5:0.32,stroke:'none'})); } });
+      (this._treeNear||[]).forEach(t=>{ if(t.shadow&&inView(t.shadow.center)){ const c=P(t.shadow.center),r=this._mPx(m,t.shadow.center,t.shadow.r*1.12); svg.appendChild(this.svgNode('circle',{cx:c[0],cy:c[1],r:r,fill:this.vColor('treeShadow'),'fill-opacity':dark?(0.42*t.density+0.12):(0.30*t.density+0.05),stroke:'none'})); } });
+      (this._bldgNear||[]).forEach(b=>{ if(inView(b.center)){ const fp=b.footprint.map(P); if(fp.length>=3){ svg.appendChild(this.svgNode('polygon',{points:fp.map(q=>q.join(',')).join(' '),fill:this.vColor('bldg'),'fill-opacity':0.96,stroke:this.vColor('bstroke'),'stroke-width':1.2})); bDrawn++; } } });
+      (this._treeNear||[]).forEach(t=>{ if(inView(t.center)){ const c=P(t.center),r=this._mPx(m,t.center,Math.max(2,t.crownR)); svg.appendChild(this.svgNode('circle',{cx:c[0],cy:c[1],r:r,fill:this.vColor('tree'),'fill-opacity':0.9,stroke:this.vColor('treeStroke'),'stroke-width':1.2})); tDrawn++; } });
+    }
+    this._drawn={b:bDrawn,t:tDrawn};
+    // casing
+    svg.appendChild(this.svgNode('polyline',{points:coords.map(c=>P(c).join(',')).join(' '),fill:'none',stroke:this.vColor('casing'),'stroke-width':12,'stroke-linejoin':'round','stroke-linecap':'round'}));
+    // shaded / sunny segments (real per-segment shade precomputed from engine.js)
+    const segS=rt.segShaded;
+    for(let i=1;i<coords.length;i++){
+      const a=coords[i-1],b=coords[i];
+      const shaded=(segS&&segS.length>=i)?segS[i-1]:(NC.shadeAt((a[0]+b[0])/2,(a[1]+b[1])/2,this.state.hour)>=0.5);
+      const pa=P(a),pb=P(b);
+      svg.appendChild(this.svgNode('line',{x1:pa[0],y1:pa[1],x2:pb[0],y2:pb[1],stroke:shaded?this.vColor('shade'):this.vColor('sun'),'stroke-width':shaded?8:6,'stroke-linecap':'round','stroke-opacity':shaded?0.96:0.86}));
+    }
+    // start / end
+    const A=P(coords[0]), B=P(coords[coords.length-1]);
+    svg.appendChild(this.svgNode('circle',{cx:A[0],cy:A[1],r:7,fill:this.vColor('accent'),stroke:'#fff','stroke-width':3}));
+    svg.appendChild(this.svgNode('circle',{cx:B[0],cy:B[1],r:8,fill:this.vColor('sun'),stroke:'#fff','stroke-width':3}));
+    // user position + heading — always the REAL fused position, drawn last and
+    // boldly so the dot is clearly visible on top of buildings, on or off route.
+    if(this.state.userPt){
+      const u=P(this.state.userPt); const head=this.state.heading||0;
+      const ringCol=dark?'#7db4ff':'#2c6ecb';
+      // device-orientation "field of view" cone — where the PHONE is pointing (compass),
+      // independent of the direction of travel. Drawn under the dot.
+      const dh=this.state.deviceHeading;
+      if(dh!=null){
+        const Rpx=46, halfDeg=27, steps=7, pts=[u[0]+','+u[1]];
+        for(let k=0;k<=steps;k++){ const ang=(dh-halfDeg+(2*halfDeg)*k/steps)*Math.PI/180; pts.push((u[0]+Rpx*Math.sin(ang))+','+(u[1]-Rpx*Math.cos(ang))); }
+        svg.appendChild(this.svgNode('polygon',{points:pts.join(' '),fill:ringCol,'fill-opacity':dark?0.30:0.22,stroke:ringCol,'stroke-width':1,'stroke-opacity':0.35,'stroke-linejoin':'round'}));
+      }
+      // when off route, a dashed line to the nearest point on the (about-to-update) route
+      if(rt&&this.state._off>20){
+        const pj=NC.projectOnPath(this.state.userPt,coords,rt.cum); const q=P(pj.pt);
+        svg.appendChild(this.svgNode('line',{x1:u[0],y1:u[1],x2:q[0],y2:q[1],stroke:ringCol,'stroke-width':2,'stroke-dasharray':'4 5','stroke-opacity':0.7}));
+      }
+      // GPS accuracy ring (real metres), capped so it never floods the screen
+      if(this._accuracy&&this._accuracy>8){
+        const ar=Math.min(80,this._mPx(m,this.state.userPt,Math.min(60,this._accuracy)));
+        svg.appendChild(this.svgNode('circle',{cx:u[0],cy:u[1],r:ar,fill:dark?'rgba(125,180,255,.12)':'rgba(44,110,203,.10)',stroke:ringCol,'stroke-width':1,'stroke-opacity':0.5}));
+      }
+      svg.appendChild(this.svgNode('circle',{cx:u[0],cy:u[1],r:18,fill:dark?'rgba(125,180,255,.22)':'rgba(44,110,203,.18)',stroke:'none'}));
+      const g=this.svgNode('g',{transform:'rotate('+head+' '+u[0]+' '+u[1]+')'});
+      g.appendChild(this.svgNode('polygon',{points:(u[0])+','+(u[1]-22)+' '+(u[0]-7.5)+','+(u[1]-8)+' '+(u[0]+7.5)+','+(u[1]-8),fill:ringCol,stroke:'#fff','stroke-width':1.5,'stroke-linejoin':'round'}));
+      svg.appendChild(g);
+      svg.appendChild(this.svgNode('circle',{cx:u[0],cy:u[1],r:11,fill:'#fff',stroke:'none'}));
+      svg.appendChild(this.svgNode('circle',{cx:u[0],cy:u[1],r:8,fill:ringCol,stroke:'#fff','stroke-width':2.5}));
+    }
+    // tiny diagnostics hook for the automated browser tests (harmless in production)
+    if(typeof window!=='undefined'){ window.__nav={ routePts:coords.length, bldgNear:(this._bldgNear?this._bldgNear.length:0), bldgDrawn:bDrawn, treeDrawn:tDrawn, hasField:!!(field&&field.valid), gps:this.state.gps, mode:this.state.mode, off:Math.round(this.state._off||0), rerouting:!!this.state.rerouting, arrived:!!this.state.arrived, deviceHeading:this.state.deviceHeading, heading:Math.round(this.state.heading||0), dot:this.state.userPt?P(this.state.userPt):null, pos:this.state.userPt||null, progress:Math.round(this.state.progress||0), routeStart:coords[0], total:Math.round(rt._total||0) }; }
+  }
+
+  /* ---- controls ---- */
+  togglePlay=()=>{ if(this.state.arrived){ this.restart(); return; } if(this.state.gps==='on'||this.state.gps==='acquiring') this.stopReal(); this.setState(s=>({playing:!s.playing,gps:'off',mode:'sim'})); }
+  cycleSpeed=()=>{ const seq=[2,4,6,10]; this.setState(s=>({speedMult:seq[(seq.indexOf(s.speedMult)+1)%seq.length]})); }
+  recenter=()=>{ this._follow=true; if(this._map&&this.state.userPt) this._map.setView(this.state.userPt,17,{animate:true}); }
+  restart=()=>{ const rt=this.state.route; this.setState({progress:0,arrived:false,playing:true,mode:'sim',userPt:rt?rt.coords[0]:null,heading:rt&&rt.coords.length>1?window.NavCore.bearing(rt.coords[0],rt.coords[1]):0}); }
+  toggleTheme=()=>this.setState(s=>({theme:s.theme==='dark'?'light':'dark'}));
+  endNav=()=>{ if(typeof window!=='undefined'){ if(window.history.length>1) window.history.back(); else window.location.href='./'; } }
+  _now(){ return (typeof performance!=='undefined'&&performance.now)?performance.now():Date.now(); }
+  // Start real, sensor-fused navigation: GPS + compass + accelerometer steps → EKF.
+  useGps=async ()=>{
+    if(this.state.gps==='on'||this.state.gps==='acquiring'){ this.stopReal(); this.setState({gps:'off',mode:'sim',playing:true}); return; }
+    if(typeof navigator==='undefined'||!navigator.geolocation||!window.NavFusion){ this.setState({gps:'error'}); return; }
+    // iOS 13+ requires an explicit motion/orientation permission from a user gesture.
+    try{ if(typeof DeviceOrientationEvent!=='undefined'&&DeviceOrientationEvent.requestPermission) await DeviceOrientationEvent.requestPermission(); }catch(e){}
+    try{ if(typeof DeviceMotionEvent!=='undefined'&&DeviceMotionEvent.requestPermission) await DeviceMotionEvent.requestPermission(); }catch(e){}
+    const rt=this.state.route; const o=rt?rt.coords[0]:window.NavCore.CENTER;
+    this._ekf=new window.NavFusion.EKF(o[0],o[1]);
+    this._stepDet=new window.NavFusion.StepDetector();
+    this._lastPredict=this._now(); this._lastStep=this._now(); this._heading=null; this._accuracy=null;
+    this.setState({gps:'acquiring',playing:false,mode:'gps',arrived:false});
+    this._oriH=(e)=>this.onOrient(e); this._motH=(e)=>this.onMotion(e);
+    window.addEventListener('deviceorientationabsolute',this._oriH,true);
+    window.addEventListener('deviceorientation',this._oriH,true);
+    window.addEventListener('devicemotion',this._motH,true);
+    this._watch=navigator.geolocation.watchPosition(
+      (pos)=>this.onGps(pos),
+      (err)=>{ if(this.state.gps!=='on'){ this.stopReal(); this.setState({gps:'error',mode:'sim',playing:false}); } },
+      {enableHighAccuracy:true,maximumAge:1000,timeout:15000}
+    );
+    if(this._fuse) clearInterval(this._fuse);
+    this._fuse=setInterval(()=>this.fuseTick(),66); // ~15 Hz predict + render
+  }
+  stopReal(){
+    if(this._watch!=null&&navigator.geolocation){ try{navigator.geolocation.clearWatch(this._watch);}catch(e){} this._watch=null; }
+    if(this._oriH){ window.removeEventListener('deviceorientationabsolute',this._oriH,true); window.removeEventListener('deviceorientation',this._oriH,true); this._oriH=null; }
+    if(this._motH){ window.removeEventListener('devicemotion',this._motH,true); this._motH=null; }
+    if(this._fuse){ clearInterval(this._fuse); this._fuse=null; }
+    this._ekf=null; this._stepDet=null;
+  }
+  onGps(pos){
+    if(!this._ekf) return; const c=pos.coords;
+    this._ekf.updateGps(c.latitude,c.longitude,c.accuracy||14);
+    this._accuracy=c.accuracy||null;
+    if(this._heading==null&&c.heading!=null&&!isNaN(c.heading)&&c.speed>0.7){
+      this._ekf.updateHeading(window.NavFusion.headingToTheta(c.heading),0.45);
+    }
+    if(this.state.gps!=='on') this.setState({gps:'on'});
+  }
+  onOrient(e){
+    if(!this._ekf) return; let hd=null;
+    if(e.webkitCompassHeading!=null) hd=e.webkitCompassHeading;        // iOS: 0=N clockwise
+    else if(e.absolute&&e.alpha!=null) hd=(360-e.alpha)%360;           // Android absolute
+    if(hd==null) return;
+    const so=(typeof screen!=='undefined'&&screen.orientation&&screen.orientation.angle)||window.orientation||0;
+    hd=(hd+so)%360; if(hd<0) hd+=360;
+    this._heading=hd; this._deviceHeading=hd;     // where the PHONE is pointing (compass)
+    if(this._ekf) this._ekf.updateHeading(window.NavFusion.headingToTheta(hd),0.30);
+  }
+  onMotion(e){
+    if(!this._ekf||!this._stepDet) return;
+    const a=e.accelerationIncludingGravity||e.acceleration; if(!a||a.x==null) return;
+    const mag=Math.sqrt(a.x*a.x+a.y*a.y+a.z*a.z);
+    const step=this._stepDet.process(mag,this._now());
+    if(step){ this._ekf.updateSpeed(step.speed,0.3); this._lastStep=this._now(); }
+  }
+  fuseTick(){
+    if(!this._ekf) return; const NC=window.NavCore; const rt=this.state.route; const t=this._now();
+    const dt=Math.max(0,(t-this._lastPredict)/1000); this._lastPredict=t;
+    this._ekf.predict(dt);
+    if((t-this._lastStep)>1500) this._ekf.updateSpeed(0,0.15); // ZUPT when not stepping
+    if(!this._ekf.inited||!rt) return;
+    const st=this._ekf.state();
+    const here=[st.lat,st.lon];
+    const proj=NC.projectOnPath(here,rt.coords,rt.cum);
+    let head=(90-st.heading*180/Math.PI); head=((head%360)+360)%360;  // EKF theta(rad,+E,CCW) -> compass deg
+    // Show the user's REAL fused position (not snapped to the line), so the dot is
+    // always exactly where they are — on or off the route.
+    const arrived=proj.along>=rt._total-4 && proj.off<25;
+    this.setState({progress:proj.along,userPt:here,heading:head,arrived,_off:proj.off,gps:'on',deviceHeading:this._deviceHeading});
+    this.maybeReroute(here,proj.off,t);
+  }
+  // More than 20 m off the planned route -> recalculate INSTANTLY from the live
+  // position. A short cooldown (and the EKF-smoothed fix) keeps GPS jitter from
+  // thrashing it; bad fixes are ignored.
+  maybeReroute(here,off,t){
+    if(this._rerouting||this.state.arrived) return;
+    const OFF=20;                                   // metres off route to count as "off"
+    if(off<=OFF) return;
+    if(this._accuracy!=null&&this._accuracy>45) return; // ignore unreliable fixes
+    const cooledDown=!this._lastReroute||(t-this._lastReroute)>4000;
+    if(cooledDown){ this._rerouteP=this.reroute(here); } // instant recalculation
+  }
+  async reroute(here){
+    const NC=window.NavCore; const to=this.state.to; if(!to) return;
+    this._rerouting=true; this._offSince=0; this._lastReroute=this._now();
+    this.setState({rerouting:true});               // keep the map + dot visible (no full-screen spinner)
+    try{
+      const fetched=await NC.fetchRoutes(here,to);
+      this._candidates=(fetched&&fetched.length)?fetched:[NC.synth(here,to)];
+      // show the new route instantly (provisional shade), keep the live dot in place
+      this._field=null; this._bldgNear=null; this._treeNear=null; this._fieldKey='';
+      const prov=NC.chooseShadiest(this._candidates,this.state.hour,this.state.weight)||this._candidates[0];
+      this.applyRoute(prov,here,to,false);
+      // the new route starts at the live position, so recompute off-route immediately
+      const up=this.state.userPt||here; const pj=NC.projectOnPath(up,prov.coords,prov.cum);
+      this.setState({rerouting:false,_off:pj.off});
+      this._refineP=this.refineShade(here,to);       // real buildings/shade in the background
+    }catch(e){ this.setState({rerouting:false}); }
+    this._rerouting=false;
+  }
+
+  renderVals(){
+    const s=this.state; const dark=s.theme==='dark'; const NC=window.NavCore;
+    const vars=dark?{bg:'#000000',panel:'#1c1c1e',panel2:'#2c2c2e',text:'#f5f5f7',subt:'#98989d',line:'rgba(255,255,255,0.13)',accent:'#5e9bf0',shade:'#7c93ff',sun:'#ffb340',mapbg:'#15151a',glass:'rgba(28,28,30,0.78)'}
+                  :{bg:'#f5f5f7',panel:'#ffffff',panel2:'#ececef',text:'#1d1d1f',subt:'#6e6e73',line:'rgba(0,0,0,0.08)',accent:'#2c6ecb',shade:'#4f6ed6',sun:'#f5a623',mapbg:'#e6e6ea',glass:'rgba(255,255,255,0.85)'};
+
+    const rt=s.route; const total=rt?rt._total:0; const prog=Math.min(s.progress,total);
+    const fmt=NC?NC.fmtDist:(m=>Math.round(m)+' m');
+
+    // banner / maneuvers
+    let banner={ic:'↑',title:'Losgehen',sub:'der Route folgen',dist:'',then:'',thenIc:''};
+    let shadeAheadLabel='…', shadeAheadDot=vars.subt;
+    if(rt&&NC){
+      let next=null, after=null;
+      for(const m of rt.maneuvers){ if(m.type!=='depart'&&m.atDist>prog+1){ if(!next) next=m; else {after=m;break;} } }
+      if(!next) next=rt.maneuvers[rt.maneuvers.length-1];
+      const ins=NC.instr(next);
+      const dToTurn=Math.max(0,next.atDist-prog);
+      banner={ic:ins.ic,title:ins.t,sub:ins.s,dist:s.arrived?'':(dToTurn<10?'Jetzt':fmt(dToTurn))};
+      if(after){ const ins2=NC.instr(after); banner.then='Dann '+ins2.t+' · '+fmt(after.atDist-prog); banner.thenIc=ins2.ic; }
+      else { banner.then='Dann ankommen an '+s.toName; banner.thenIc='◉'; }
+      // Schatten ~30 m voraus (real shade from engine.js when available)
+      const ahead=NC.pointAt(rt.coords,rt.cum,Math.min(total,prog+30));
+      const sa=(this._field&&this._field.valid)?this._field.shadeAtLatLng(ahead.lat,ahead.lng):NC.shadeAt(ahead.lat,ahead.lng,s.hour);
+      if(sa>=0.5){ shadeAheadLabel='Schatten voraus'; shadeAheadDot=vars.shade; }
+      else { shadeAheadLabel='Sonniger Abschnitt'; shadeAheadDot=vars.sun; }
+    }
+
+    const remain=Math.max(0,total-prog);
+    const etaMin=Math.max(0,Math.round(remain/1.4/60));
+    const etaText=s.arrived?'Angekommen':(etaMin<1?'< 1 Min':etaMin+' Min');
+    const remainText=remain>=1000?(remain/1000).toFixed(1).replace('.',',')+' km':Math.round(remain)+' m';
+    const shadePct=rt?Math.round((rt.shadeFrac||0.5)*100):0;
+    const progressW=total?Math.round(prog/total*100):0;
+
+    const acc=this._accuracy;
+    const live=s.gps==='on', acq=s.gps==='acquiring';
+    const navBtnLabel = live?'Live aktiv · Beenden':acq?'GPS wird gesucht…':s.gps==='error'?'Erneut versuchen':'Live-Navigation starten';
+    const navBtnIc = live?'●':acq?'◌':'◎';
+    const navBtnBg = acq?vars.panel2:(live?vars.accent:('linear-gradient(135deg,'+vars.accent+','+vars.shade+')'));
+    const navBtnColor = acq?vars.subt:'#fff';
+
+    let statusLine, offRoute=false;
+    if(s.rerouting) statusLine='Route wird neu berechnet …';
+    else if(s.mode==='gps'&&s.gps==='on'){
+      const a=acc?(' · GPS ±'+Math.round(acc)+' m'):'';
+      if(s._off>20){ offRoute=true; statusLine='Du bist ca. '+Math.round(s._off)+' m abseits der Route · Route wird angepasst'; }
+      else statusLine='GPS + Kompass + Schritte fusioniert'+a;
+    }
+    else if(s.gps==='acquiring') statusLine='Sensoren werden gestartet … GPS-Signal wird gesucht';
+    else if(s.gps==='error') statusLine='Standort/Sensoren nicht verfügbar. Nutze den Demo-Modus.';
+    else statusLine='Bereit für GPS-Navigation · '+s.fromName+' → '+s.toName;
+    const statusStyle = s.gps==='error'
+      ? 'text-align:center;font-size:15.5px;font-weight:800;color:#ff3b30;letter-spacing:-.01em;line-height:1.3;'
+      : (s.rerouting||offRoute)
+        ? 'text-align:center;font-size:12.5px;font-weight:700;color:'+vars.accent+';letter-spacing:-.01em;line-height:1.3;'
+        : 'text-align:center;font-size:11.5px;color:var(--subt,#9b9ba0);';
+
+    return {
+      vars, themeIcon:dark?'☀':'☾',
+      loading:s.loading||!rt, loadingText:s.loadingText,
+      rerouting:!!s.rerouting,
+      noGps:s.gps==='error',
+      noGpsTitle:'Kein GPS-Zugriff', noGpsRetry:'Standort erlauben & erneut versuchen',
+      noGpsBody:'Es wurde kein Standortzugriff erteilt. Ohne GPS kann dich die Live-Navigation nicht führen. Erlaube den Standort in den Browser-Einstellungen und tippe unten erneut auf „Live-Navigation starten". Solange kannst du den Demo-Modus nutzen.',
+      banner, shadeAheadLabel, shadeAheadDot,
+      etaText, remainText, shadePct, progressW,
+      playLabel:s.arrived?'↺':(s.playing&&s.mode==='sim'?'❚❚':'▶'),
+      speedLabel:s.speedMult+'×',
+      navBtnLabel, navBtnIc, navBtnBg, navBtnColor,
+      statusLine, statusStyle, arrived:s.arrived, toName:s.toName,
+      setMapEl:this.setMapEl,
+      togglePlay:this.togglePlay, cycleSpeed:this.cycleSpeed, recenter:this.recenter,
+      useGps:this.useGps, toggleTheme:this.toggleTheme, endNav:this.endNav, restart:this.restart
+    };
+  }
+}
+</script>
+</body>
+</html>
